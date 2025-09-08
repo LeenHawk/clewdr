@@ -49,6 +49,7 @@ where
 /// Result indicating success or failure of the application execution
 #[tokio::main]
 async fn main() -> Result<(), ClewdrError> {
+    // DB drivers setup is handled by SeaORM (via sqlx features) when compiled with db-*
     #[cfg(feature = "dhat-heap")]
     let _profiler = dhat::Profiler::new_heap();
     #[cfg(windows)]
@@ -101,6 +102,11 @@ async fn main() -> Result<(), ClewdrError> {
         if let Err(e) = updater.check_for_updates().await {
             warn!("Update check failed: {}", e);
         }
+    }
+
+    if let Err(e) = clewdr::persistence::storage().spawn_bootstrap().await {
+        use tracing::warn;
+        warn!("DB bootstrap skipped or failed: {}", e);
     }
 
     // print info

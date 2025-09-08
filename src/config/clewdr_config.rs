@@ -59,6 +59,32 @@ pub struct VertexConfig {
     pub model_id: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum PersistenceMode {
+    #[default]
+    File,
+    Sqlite,
+    Postgres,
+    Mysql,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct PersistenceConfig {
+    /// file | sqlite | postgres
+    #[serde(default)]
+    pub mode: PersistenceMode,
+    /// Preferred database URL. Examples:
+    /// - sqlite:///etc/clewdr/clewdr.db
+    /// - postgres://user:pass@host:5432/db
+    /// - mysql://user:pass@host:3306/db
+    #[serde(default)]
+    pub database_url: Option<String>,
+    /// Shortcut for sqlite path when database_url is not provided
+    #[serde(default)]
+    pub sqlite_path: Option<String>,
+}
+
 impl VertexConfig {
     pub fn validate(&self) -> bool {
         self.credential.is_some()
@@ -77,6 +103,10 @@ pub struct ClewdrConfig {
     pub wasted_cookie: HashSet<UselessCookie>,
     #[serde(default)]
     pub gemini_keys: HashSet<KeyStatus>,
+
+    // Persistence settings
+    #[serde(default)]
+    pub persistence: PersistenceConfig,
 
     // Server settings, cannot hot reload
     #[serde(default = "default_ip")]
@@ -157,6 +187,7 @@ impl Default for ClewdrConfig {
             cookie_array: HashSet::new(),
             wasted_cookie: HashSet::new(),
             gemini_keys: HashSet::new(),
+            persistence: Default::default(),
             password: String::new(),
             admin_password: String::new(),
             proxy: None,
@@ -243,11 +274,66 @@ impl Display for ClewdrConfig {
         )?;
         writeln!(f, "Skip normal Pro: {}", enabled(self.skip_normal_pro))?;
         writeln!(f, "Skip rate limit: {}", enabled(self.skip_rate_limit))?;
+        match self.persistence.mode {
+            PersistenceMode::File => writeln!(f, "Persistence: file")?,
+            PersistenceMode::Sqlite => writeln!(
+                f,
+                "Persistence: sqlite{}",
+                self.persistence
+                    .sqlite_path
+                    .as_deref()
+                    .unwrap_or("")
+                    .blue()
+            )?,
+            PersistenceMode::Postgres => writeln!(
+                f,
+                "Persistence: postgres ({})",
+                self.persistence
+                    .database_url
+                    .as_deref()
+                    .unwrap_or("env: CLEWDR_DATABASE_URL")
+                    .blue()
+            )?,
+            PersistenceMode::Mysql => writeln!(
+                f,
+                "Persistence: mysql ({})",
+                self.persistence
+                    .database_url
+                    .as_deref()
+                    .unwrap_or("env: CLEWDR_DATABASE_URL")
+                    .blue()
+            )?,
+        }
         Ok(())
     }
 }
 
 impl ClewdrConfig {
+    pub fn is_db_mode(&self) -> bool {
+        matches!(
+            self.persistence.mode,
+            PersistenceMode::Sqlite | PersistenceMode::Postgres | PersistenceMode::Mysql
+        )
+    }
+
+    pub fn database_url(&self) -> Option<String> {
+        if let Some(url) = &self.persistence.database_url {
+            return Some(url.to_owned());
+        }
+        match self.persistence.mode {
+            PersistenceMode::Sqlite => {
+                if let Some(path) = &self.persistence.sqlite_path {
+                    // Ensure read-write-create mode for sqlite files
+                    return Some(format!("sqlite://{}?mode=rwc", path));
+                }
+                // default sqlite path oriented for container persistence
+                Some("sqlite:///etc/clewdr/clewdr.db?mode=rwc".to_string())
+            }
+            PersistenceMode::Postgres => None,
+            PersistenceMode::Mysql => None,
+            PersistenceMode::File => None,
+        }
+    }
     pub fn user_auth(&self, key: &str) -> bool {
         key == self.password
     }
@@ -270,8 +356,10 @@ impl ClewdrConfig {
     /// # Returns
     /// * Config instance
     pub fn new() -> Self {
+        // Load config from TOML then override with environment variables.
+        // Use double underscore "__" to map nested keys, e.g. CLEWDR_PERSISTENCE__MODE=postgres
         let mut config: ClewdrConfig = Figment::from(Toml::file(CONFIG_PATH.as_path()))
-            .admerge(Env::prefixed("CLEWDR_"))
+            .admerge(Env::prefixed("CLEWDR_").split("__"))
             .extract_lossy()
             .inspect_err(|e| {
                 error!("Failed to load config: {}", e);
@@ -284,7 +372,7 @@ impl ClewdrConfig {
         }) {
             config.vertex.credential = Some(credential);
         }
-        if let Some(ref f) = Args::parse().file {
+        if let Some(ref f) = Args::try_parse().ok().and_then(|a| a.file) {
             // load cookies from file
             if f.exists() {
                 if let Ok(cookies) = std::fs::read_to_string(f) {
@@ -328,15 +416,23 @@ impl ClewdrConfig {
 
     /// Save the configuration to a file
     pub async fn save(&self) -> Result<(), ClewdrError> {
+        // If DB feature compiled and DB mode enabled, persist to DB; otherwise write to file
+        if crate::persistence::storage().is_enabled() {
+            return crate::persistence::storage().persist_config(self).await;
+        }
         if self.no_fs {
             return Ok(());
         }
-        if let Some(parent) = CONFIG_PATH.parent()
-            && !parent.exists()
-        {
+        if let Some(parent) = CONFIG_PATH.parent() && !parent.exists() {
             tokio::fs::create_dir_all(parent).await?;
         }
-        Ok(tokio::fs::write(CONFIG_PATH.as_path(), toml::ser::to_string_pretty(self)?).await?)
+        Ok(
+            tokio::fs::write(
+                CONFIG_PATH.as_path(),
+                toml::ser::to_string_pretty(self)?,
+            )
+            .await?,
+        )
     }
 
     /// Validate the configuration

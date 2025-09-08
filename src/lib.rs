@@ -13,7 +13,9 @@ pub mod error;
 pub mod gemini_state;
 pub mod middleware;
 pub mod router;
+pub mod routes;
 pub mod services;
+pub mod persistence;
 pub mod types;
 pub mod utils;
 
