@@ -5,11 +5,11 @@ use serde::Serialize;
 use snafu::{GenerateImplicitData, Location};
 use tracing::{error, info};
 
+use crate::persistence::StorageLayer;
 use crate::{
     config::{CLEWDR_CONFIG, ClewdrConfig, KeyStatus},
     error::ClewdrError,
 };
-use crate::persistence::StorageLayer;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct KeyStatusInfo {
@@ -35,7 +35,9 @@ enum KeyActorMessage {
 type KeyActorState = VecDeque<KeyStatus>;
 
 /// Key actor that handles key distribution and status tracking using Ractor
-struct KeyActor { storage: &'static dyn StorageLayer }
+struct KeyActor {
+    storage: &'static dyn StorageLayer,
+}
 
 impl KeyActor {
     /// Saves the current state of keys to the configuration
@@ -190,9 +192,15 @@ impl KeyActorHandle {
     }
 
     /// Create a new KeyActor with injected storage layer
-    pub async fn start_with_storage(storage: &'static dyn StorageLayer) -> Result<Self, ractor::SpawnErr> {
-        let (actor_ref, _join_handle) =
-            Actor::spawn(None, KeyActor { storage }, CLEWDR_CONFIG.load().gemini_keys.clone()).await?;
+    pub async fn start_with_storage(
+        storage: &'static dyn StorageLayer,
+    ) -> Result<Self, ractor::SpawnErr> {
+        let (actor_ref, _join_handle) = Actor::spawn(
+            None,
+            KeyActor { storage },
+            CLEWDR_CONFIG.load().gemini_keys.clone(),
+        )
+        .await?;
         Ok(Self { actor_ref })
     }
 

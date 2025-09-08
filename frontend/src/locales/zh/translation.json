@@ -27,7 +27,8 @@
     "config": "配置",
     "keys": "密钥",
     "auth": "认证",
-    "cli": "CLI"
+    "cli": "CLI",
+    "codex": "Codex"
   },
   "cookieTab": {
     "submit": "提交Cookie",
@@ -153,7 +154,19 @@
     "error": "错误：{{message}}",
     "reveal": "显示",
     "hide": "隐藏",
-    "copy": "复制到剪贴板"
+    "copy": "复制到剪贴板",
+    "refresh": "刷新"
+  },
+  "codex": {
+    "title": "Codex OAuth 登录",
+    "desc": "使用 ChatGPT 账户登录以启用 Codex 反代（OpenAI 兼容）。",
+    "startLogin": "开始登录",
+    "logout": "登出",
+    "status": "当前状态",
+    "authenticated": "已认证",
+    "accountId": "账户ID",
+    "lastRefresh": "最后刷新",
+    "noStatus": "暂无状态，请点击刷新。"
   },
   "keyTab": {
     "submit": "提交密钥",

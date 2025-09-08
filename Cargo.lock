@@ -479,7 +479,6 @@ dependencies = [
  "serde",
 ]
 
-
 [[package]]
 name = "block-buffer"
 version = "0.10.4"
@@ -711,6 +710,8 @@ dependencies = [
  "eventsource-stream",
  "figment",
  "futures",
+ "hex",
+ "htmlescape",
  "http",
  "hyper-http-proxy",
  "hyper-util",
@@ -720,14 +721,17 @@ dependencies = [
  "mimalloc",
  "moka",
  "oauth2",
+ "once_cell",
  "passwords",
  "ractor",
+ "rand",
  "regex",
  "sea-orm",
  "self-replace",
  "serde",
  "serde_json",
  "serde_with",
+ "sha2",
  "snafu",
  "struct_iterable",
  "strum 0.27.2",
@@ -1661,6 +1665,12 @@ checksum = "589533453244b0995c858700322199b2becb13b627df2851f64a2775d024abcf"
 dependencies = [
  "windows-sys 0.59.0",
 ]
+
+[[package]]
+name = "htmlescape"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9025058dae765dee5070ec375f591e2ba14638c63feff74f13805a72e523163"
 
 [[package]]
 name = "http"

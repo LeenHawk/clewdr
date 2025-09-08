@@ -11,6 +11,7 @@ import CookieTabs from "./components/cookie";
 import ConfigTab from "./components/config";
 import KeysTabs from "./components/keys";
 import CliGuide from "./components/cli";
+import CodexPanel from "./components/codex";
 import StatusMessage from "./components/common/StatusMessage";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { useAppContext } from "./context/AppContext";
@@ -53,6 +54,7 @@ function App() {
     { id: "cookie", label: t("tabs.cookie"), color: "cyan" },
     { id: "keys", label: t("tabs.keys"), color: "purple" },
     { id: "cli", label: t("tabs.cli"), color: "blue" },
+    { id: "codex", label: t("tabs.codex"), color: "orange" },
     { id: "config", label: t("tabs.config"), color: "green" },
     { id: "token", label: t("tabs.auth"), color: "amber" },
   ];
@@ -79,6 +81,8 @@ function App() {
                 <KeysTabs />
               ) : activeTab === "cli" ? (
                 <CliGuide />
+              ) : activeTab === "codex" ? (
+                <CodexPanel />
               ) : (
                 <LogoutPanel onLogout={handleLogout} />
               )}

@@ -1,20 +1,19 @@
 use axum::{Router, http::Method};
 use tower_http::cors::CorsLayer;
 
+use crate::routes::{
+    build_admin_router, build_claude_code_oai_router, build_claude_code_router,
+    build_claude_web_oai_router, build_claude_web_router, build_codex_oauth_router,
+    build_codex_router, build_gemini_cli_router, build_gemini_router,
+};
 use crate::{
     claude_code_state::ClaudeCodeState,
     claude_web_state::ClaudeWebState,
     gemini_state::GeminiState,
-    services::{cookie_actor::CookieActorHandle, key_actor::KeyActorHandle, cli_token_actor::CliTokenActorHandle},
-};
-use crate::routes::{
-    build_admin_router,
-    build_claude_code_oai_router,
-    build_claude_code_router,
-    build_claude_web_oai_router,
-    build_claude_web_router,
-    build_gemini_router,
-    build_gemini_cli_router,
+    services::{
+        cli_token_actor::CliTokenActorHandle, cookie_actor::CookieActorHandle,
+        key_actor::KeyActorHandle,
+    },
 };
 
 /// RouterBuilder for the application
@@ -68,10 +67,18 @@ impl RouterBuilder {
             .merge(build_gemini_router(self.gemini_state.to_owned()))
             // CLI-dedicated Gemini routes with separate prefix to avoid confusion
             .merge(build_gemini_cli_router(self.gemini_state.to_owned()))
-            .merge(build_claude_web_router(self.claude_web_state.to_owned().with_claude_format()))
+            .merge(build_claude_web_router(
+                self.claude_web_state.to_owned().with_claude_format(),
+            ))
             .merge(build_claude_code_router(self.claude_code_state.to_owned()))
-            .merge(build_claude_web_oai_router(self.claude_web_state.to_owned().with_openai_format()))
-            .merge(build_claude_code_oai_router(self.claude_code_state.to_owned()))
+            .merge(build_claude_web_oai_router(
+                self.claude_web_state.to_owned().with_openai_format(),
+            ))
+            .merge(build_claude_code_oai_router(
+                self.claude_code_state.to_owned(),
+            ))
+            .merge(build_codex_router())
+            .merge(build_codex_oauth_router())
             .merge(build_admin_router(
                 self.cookie_actor_handle.to_owned(),
                 self.key_actor_handle.to_owned(),

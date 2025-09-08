@@ -1,12 +1,23 @@
-use axum::{Router, routing::{get, post, delete}, middleware::from_extractor};
+use axum::{
+    Router,
+    middleware::from_extractor,
+    routing::{delete, get, post},
+};
 
 use crate::{
     api::*,
     middleware::RequireAdminAuth,
-    services::{cookie_actor::CookieActorHandle, key_actor::KeyActorHandle, cli_token_actor::CliTokenActorHandle},
+    services::{
+        cli_token_actor::CliTokenActorHandle, cookie_actor::CookieActorHandle,
+        key_actor::KeyActorHandle,
+    },
 };
 
-pub fn build_admin_router(cookie_handle: CookieActorHandle, key_handle: KeyActorHandle, cli_handle: CliTokenActorHandle) -> Router {
+pub fn build_admin_router(
+    cookie_handle: CookieActorHandle,
+    key_handle: KeyActorHandle,
+    cli_handle: CliTokenActorHandle,
+) -> Router {
     let cookie_router = Router::new()
         .route("/cookies", get(api_get_cookies))
         .route("/cookie", delete(api_delete_cookie).post(api_post_cookie))
@@ -16,7 +27,10 @@ pub fn build_admin_router(cookie_handle: CookieActorHandle, key_handle: KeyActor
         .route("/keys", get(api_get_keys))
         .with_state(key_handle);
     let cli_router = Router::new()
-        .route("/cli_token", post(api_post_cli_token).delete(api_delete_cli_token))
+        .route(
+            "/cli_token",
+            post(api_post_cli_token).delete(api_delete_cli_token),
+        )
         .route("/cli_tokens", get(api_get_cli_tokens))
         .with_state(cli_handle);
     let admin_router = Router::new()

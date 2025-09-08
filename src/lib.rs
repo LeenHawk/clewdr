@@ -8,14 +8,15 @@ use crate::config::CLEWDR_CONFIG;
 pub mod api;
 pub mod claude_code_state;
 pub mod claude_web_state;
+pub mod codex_state;
 pub mod config;
 pub mod error;
 pub mod gemini_state;
 pub mod middleware;
+pub mod persistence;
 pub mod router;
 pub mod routes;
 pub mod services;
-pub mod persistence;
 pub mod types;
 pub mod utils;
 

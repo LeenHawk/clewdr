@@ -199,6 +199,11 @@ Claude Code:   http://127.0.0.1:8484/code/v1/messages     # Claude Code
 Gemini Native: http://127.0.0.1:8484/v1/v1beta/generateContent    # 原生格式
 Gemini OpenAI: http://127.0.0.1:8484/gemini/chat/completions      # OpenAI兼容
 Vertex AI:     http://127.0.0.1:8484/v1/vertex/v1beta/            # Vertex AI
+
+# Codex 端点（OpenAI 兼容，经 ChatGPT 登录）
+Codex Chat:    http://127.0.0.1:8484/codex/v1/chat/completions    # Chat Completions
+Codex Text:    http://127.0.0.1:8484/codex/v1/completions         # Text Completions
+Codex Models:  http://127.0.0.1:8484/codex/v1/models              # 模型列表
 ```
 
 #### ⚙️ **应用配置示例**
@@ -253,6 +258,28 @@ Vertex AI:     http://127.0.0.1:8484/v1/vertex/v1beta/            # Vertex AI
 - ✅ 监控请求日志确认连接成功
 - ✅ 使用简单聊天请求测试
 - ✅ 享受超快的LLM代理性能！
+
+### Codex 登录（ChatGPT OAuth）
+
+1. Web 控制台登录后，切换到“Codex”标签页，点击“开始登录”，在浏览器完成授权
+2. 回调成功后，界面显示“已认证”为 true
+3. 使用上面 Codex 端点作为 OpenAI 兼容 baseURL，并在客户端设置 API 密码为控制台显示的密码（与其他端点一致）
+
+或使用 API 直接操作：
+
+```bash
+# 获取登录链接（需 Admin Bearer）
+curl -H "Authorization: Bearer <Web Admin Password>" \
+  http://127.0.0.1:8484/api/codex/oauth/start
+
+# 查看状态（需 Admin Bearer）
+curl -H "Authorization: Bearer <Web Admin Password>" \
+  http://127.0.0.1:8484/api/codex/tokens
+
+# 登出清除（需 Admin Bearer）
+curl -X POST -H "Authorization: Bearer <Web Admin Password>" \
+  http://127.0.0.1:8484/api/codex/logout
+```
 
 ## 社区资源
 

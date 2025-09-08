@@ -17,6 +17,11 @@ pub const CC_CLIENT_ID: &str = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 pub const CC_TOKEN_URL: &str = "https://console.anthropic.com/v1/oauth/token";
 pub const CC_REDIRECT_URI: &str = "https://console.anthropic.com/oauth/code/callback";
 
+// OpenAI Codex (ChatGPT) OAuth defaults
+// Fallback client id used by Codex CLI simplified flow; can be overridden via config/env
+pub const CODEX_CLIENT_ID_DEFAULT: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
+pub const CODEX_OAUTH_ISSUER: &str = "https://auth.openai.com";
+
 pub static ENDPOINT_URL: LazyLock<Url> = LazyLock::new(|| {
     Url::parse(CLAUDE_ENDPOINT).unwrap_or_else(|_| {
         panic!("Failed to parse endpoint URL: {CLAUDE_ENDPOINT}");

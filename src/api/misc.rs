@@ -1,17 +1,17 @@
+use super::error::ApiError;
 use axum::{Json, extract::State};
 use axum_auth::AuthBearer;
 use serde_json::{Value, json};
 use tracing::{error, info, warn};
 use wreq::StatusCode;
-use super::error::ApiError;
 
 use crate::{
     VERSION_INFO,
     config::{CLEWDR_CONFIG, CookieStatus, KeyStatus},
     services::{
+        cli_token_actor::{CliTokenActorHandle, CliTokenStatusInfo},
         cookie_actor::{CookieActorHandle, CookieStatusInfo},
         key_actor::{KeyActorHandle, KeyStatusInfo},
-        cli_token_actor::{CliTokenActorHandle, CliTokenStatusInfo},
     },
 };
 
@@ -99,17 +99,38 @@ pub async fn api_post_cli_token(
         .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
         .map(|dt| dt.with_timezone(&Utc));
     let meta = crate::config::CliOAuthMeta {
-        client_id: body.get("client_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        client_secret: body.get("client_secret").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        refresh_token: body.get("refresh_token").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        token_uri: body.get("token_uri").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        scopes: body
-            .get("scopes")
-            .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect()),
-        project_id: body.get("project_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        client_id: body
+            .get("client_id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        client_secret: body
+            .get("client_secret")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        refresh_token: body
+            .get("refresh_token")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        token_uri: body
+            .get("token_uri")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        scopes: body.get("scopes").and_then(|v| v.as_array()).map(|arr| {
+            arr.iter()
+                .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                .collect()
+        }),
+        project_id: body
+            .get("project_id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
     };
-    let status = crate::config::CliTokenStatus { token: token.into(), count_403: 0, expiry, meta: Some(meta) };
+    let status = crate::config::CliTokenStatus {
+        token: token.into(),
+        count_403: 0,
+        expiry,
+        meta: Some(meta),
+    };
     info!("CLI token accepted: {}", status.token.ellipse());
     match s.submit(status).await {
         Ok(_) => StatusCode::OK,
@@ -139,7 +160,10 @@ pub async fn api_get_cookies(
 
     match s.get_status().await {
         Ok(status) => Ok(Json(status)),
-        Err(e) => Err(ApiError::internal(format!("Failed to get cookie status: {}", e))),
+        Err(e) => Err(ApiError::internal(format!(
+            "Failed to get cookie status: {}",
+            e
+        ))),
     }
 }
 
@@ -153,7 +177,10 @@ pub async fn api_get_keys(
 
     match s.get_status().await {
         Ok(status) => Ok(Json(status)),
-        Err(e) => Err(ApiError::internal(format!("Failed to get keys status: {}", e))),
+        Err(e) => Err(ApiError::internal(format!(
+            "Failed to get keys status: {}",
+            e
+        ))),
     }
 }
 
@@ -166,7 +193,10 @@ pub async fn api_get_cli_tokens(
     }
     match s.get_status().await {
         Ok(status) => Ok(Json(status)),
-        Err(e) => Err(ApiError::internal(format!("Failed to get CLI tokens status: {}", e))),
+        Err(e) => Err(ApiError::internal(format!(
+            "Failed to get CLI tokens status: {}",
+            e
+        ))),
     }
 }
 
@@ -196,7 +226,10 @@ pub async fn api_delete_cookie(
         }
         Err(e) => {
             error!("Failed to delete cookie: {}", e);
-            Err(ApiError::internal(format!("Failed to delete cookie: {}", e)))
+            Err(ApiError::internal(format!(
+                "Failed to delete cookie: {}",
+                e
+            )))
         }
     }
 }
@@ -236,7 +269,10 @@ pub async fn api_delete_cli_token(
     }
     match s.delete(c.to_owned()).await {
         Ok(_) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => Err(ApiError::internal(format!("Failed to delete CLI token: {}", e))),
+        Err(e) => Err(ApiError::internal(format!(
+            "Failed to delete CLI token: {}",
+            e
+        ))),
     }
 }
 

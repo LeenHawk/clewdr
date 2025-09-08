@@ -5,35 +5,54 @@ use sea_orm::{ConnectionTrait, Database, DatabaseConnection, Schema};
 use crate::error::ClewdrError;
 
 use super::entities::{
-    EntityConfig, EntityCookie, EntityKeyRow, EntityWasted,
-    ColumnCookie, ColumnKeyRow,
+    ColumnCookie, ColumnKeyRow, EntityConfig, EntityCookie, EntityKeyRow, EntityWasted,
 };
 
-static CONN: LazyLock<std::sync::Mutex<Option<DatabaseConnection>>> = LazyLock::new(|| std::sync::Mutex::new(None));
+static CONN: LazyLock<std::sync::Mutex<Option<DatabaseConnection>>> =
+    LazyLock::new(|| std::sync::Mutex::new(None));
 
 pub async fn ensure_conn() -> Result<DatabaseConnection, ClewdrError> {
     if let Ok(g) = CONN.lock() {
-        if let Some(db) = g.as_ref() { return Ok(db.clone()); }
+        if let Some(db) = g.as_ref() {
+            return Ok(db.clone());
+        }
     }
     let cfg = crate::config::CLEWDR_CONFIG.load();
-    if !cfg.is_db_mode() { return Err(ClewdrError::Whatever { message: "DB mode not enabled".into(), source: None }); }
-    let url = cfg.database_url().or_else(|| std::env::var("CLEWDR_DATABASE_URL").ok())
-        .ok_or(ClewdrError::UnexpectedNone { msg: "Database URL not provided" })?;
+    if !cfg.is_db_mode() {
+        return Err(ClewdrError::Whatever {
+            message: "DB mode not enabled".into(),
+            source: None,
+        });
+    }
+    let url = cfg
+        .database_url()
+        .or_else(|| std::env::var("CLEWDR_DATABASE_URL").ok())
+        .ok_or(ClewdrError::UnexpectedNone {
+            msg: "Database URL not provided",
+        })?;
     if url.starts_with("sqlite://") {
         if let Some(parent) = std::path::Path::new(&url["sqlite://".len()..]).parent() {
             let _ = std::fs::create_dir_all(parent);
         }
     }
-    let db = Database::connect(&url).await.map_err(|e| ClewdrError::Whatever { message: "db_connect".into(), source: Some(Box::new(e)) })?;
+    let db = Database::connect(&url)
+        .await
+        .map_err(|e| ClewdrError::Whatever {
+            message: "db_connect".into(),
+            source: Some(Box::new(e)),
+        })?;
     migrate(&db).await?;
-    if let Ok(mut g) = CONN.lock() { *g = Some(db.clone()); }
+    if let Ok(mut g) = CONN.lock() {
+        *g = Some(db.clone());
+    }
     Ok(db)
 }
 
 async fn migrate(db: &DatabaseConnection) -> Result<(), ClewdrError> {
     let backend = db.get_database_backend();
     let schema = Schema::new(backend);
-    let stmt: sea_orm::sea_query::TableCreateStatement = schema.create_table_from_entity(EntityConfig);
+    let stmt: sea_orm::sea_query::TableCreateStatement =
+        schema.create_table_from_entity(EntityConfig);
     db.execute(backend.build(&stmt)).await.ok();
     let stmt = schema.create_table_from_entity(EntityCookie);
     db.execute(backend.build(&stmt)).await.ok();

@@ -1,4 +1,4 @@
-use axum::{Router, routing::post, middleware::from_extractor};
+use axum::{Router, middleware::from_extractor, routing::post};
 use tower_http::compression::CompressionLayer;
 
 use crate::{
@@ -22,4 +22,3 @@ pub fn build_gemini_router(state: GeminiState) -> Router {
         .with_state(state);
     router_gemini.merge(router_oai)
 }
-

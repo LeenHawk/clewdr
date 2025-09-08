@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-
 use crate::{
     config::{CookieStatus, Reason},
     persistence,
@@ -9,7 +8,10 @@ use crate::{
 
 /// Spawn background sync tasks for keys and cookies when DB storage is enabled.
 /// Returns join handles if tasks were spawned.
-pub fn spawn(cookie_handle: CookieActorHandle, key_handle: KeyActorHandle) -> Option<Vec<tokio::task::JoinHandle<()>>> {
+pub fn spawn(
+    cookie_handle: CookieActorHandle,
+    key_handle: KeyActorHandle,
+) -> Option<Vec<tokio::task::JoinHandle<()>>> {
     if !persistence::storage().is_enabled() {
         return None;
     }
@@ -42,8 +44,13 @@ pub fn spawn(cookie_handle: CookieActorHandle, key_handle: KeyActorHandle) -> Op
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(45));
         loop {
             interval.tick().await;
-            let Ok((db_valid, db_exhausted, db_invalid)) = persistence::load_all_cookies().await else { continue };
-            let Ok(cur) = c_handle.get_status().await else { continue };
+            let Ok((db_valid, db_exhausted, db_invalid)) = persistence::load_all_cookies().await
+            else {
+                continue;
+            };
+            let Ok(cur) = c_handle.get_status().await else {
+                continue;
+            };
             let cur_valid: HashSet<_> = cur.valid.iter().map(|x| x.cookie.to_string()).collect();
             let cur_exh: HashSet<_> = cur.exhausted.iter().map(|x| x.cookie.to_string()).collect();
             let cur_inv: HashSet<_> = cur.invalid.iter().map(|x| x.cookie.to_string()).collect();
@@ -60,10 +67,14 @@ pub fn spawn(cookie_handle: CookieActorHandle, key_handle: KeyActorHandle) -> Op
             for e in db_exhausted.iter() {
                 let key = e.cookie.to_string();
                 if !cur_exh.contains(&key) {
-                    let ts = e.reset_time.unwrap_or(chrono::Utc::now().timestamp() + 3600);
+                    let ts = e
+                        .reset_time
+                        .unwrap_or(chrono::Utc::now().timestamp() + 3600);
                     let mut tmp: CookieStatus = e.clone();
                     tmp.reset_time = Some(ts);
-                    let _ = c_handle.return_cookie(tmp, Some(Reason::TooManyRequest(ts))).await;
+                    let _ = c_handle
+                        .return_cookie(tmp, Some(Reason::TooManyRequest(ts)))
+                        .await;
                 }
             }
 
@@ -71,7 +82,11 @@ pub fn spawn(cookie_handle: CookieActorHandle, key_handle: KeyActorHandle) -> Op
             for u in db_invalid.iter() {
                 let key = u.cookie.to_string();
                 if !cur_inv.contains(&key) {
-                    let tmp = CookieStatus { cookie: u.cookie.clone(), token: None, reset_time: None };
+                    let tmp = CookieStatus {
+                        cookie: u.cookie.clone(),
+                        token: None,
+                        reset_time: None,
+                    };
                     let _ = c_handle.return_cookie(tmp, Some(u.reason.clone())).await;
                 }
             }

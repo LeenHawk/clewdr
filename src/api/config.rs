@@ -3,8 +3,8 @@ use axum_auth::AuthBearer;
 use serde_json::json;
 // no direct StatusCode usage here; ApiError handles responses
 
-use crate::config::{CLEWDR_CONFIG, ClewdrConfig};
 use super::error::ApiError;
+use crate::config::{CLEWDR_CONFIG, ClewdrConfig};
 
 /// API endpoint to retrieve the application configuration
 /// Returns the config as JSON with sensitive fields removed

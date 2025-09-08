@@ -82,7 +82,10 @@ pub struct GeminiState {
 
 impl GeminiState {
     /// Create a new AppState instance
-    pub fn new(tx: KeyActorHandle, cli: crate::services::cli_token_actor::CliTokenActorHandle) -> Self {
+    pub fn new(
+        tx: KeyActorHandle,
+        cli: crate::services::cli_token_actor::CliTokenActorHandle,
+    ) -> Self {
         GeminiState {
             model: String::new(),
             vertex: false,
@@ -211,7 +214,9 @@ impl GeminiState {
         // If CLI mode and a user bearer exists, or saved CLI tokens exist, prefer OAuth bearer
         let res = if self.cli_mode {
             if !(self.auth_bearer.is_some() || !CLEWDR_CONFIG.load().cli_tokens.is_empty()) {
-                return Err(ClewdrError::BadRequest { msg: "CLI requires OAuth credentials (Bearer or saved CLI token)" });
+                return Err(ClewdrError::BadRequest {
+                    msg: "CLI requires OAuth credentials (Bearer or saved CLI token)",
+                });
             }
             // Use user OAuth (ya29...) to call Code Assist endpoint like gcli2api
             // 1) obtain token (with optional refresh)
@@ -226,25 +231,47 @@ impl GeminiState {
                         let near = exp - chrono::Duration::seconds(300);
                         if now >= near {
                             if let Some(meta) = t.meta.clone() {
-                                if let (Some(client_id), Some(client_secret), Some(refresh_token), Some(token_uri)) = (meta.client_id, meta.client_secret, meta.refresh_token, meta.token_uri) {
+                                if let (
+                                    Some(client_id),
+                                    Some(client_secret),
+                                    Some(refresh_token),
+                                    Some(token_uri),
+                                ) = (
+                                    meta.client_id,
+                                    meta.client_secret,
+                                    meta.refresh_token,
+                                    meta.token_uri,
+                                ) {
                                     let form = [
                                         ("grant_type", "refresh_token"),
                                         ("client_id", client_id.as_str()),
                                         ("client_secret", client_secret.as_str()),
                                         ("refresh_token", refresh_token.as_str()),
                                     ];
-                                    let resp = self.client
+                                    let resp = self
+                                        .client
                                         .post(token_uri)
                                         .form(&form)
                                         .send()
                                         .await
-                                        .context(WreqSnafu { msg: "Failed to refresh CLI OAuth token" })?;
-                                    let v: serde_json::Value = resp.json().await.context(WreqSnafu { msg: "Failed to parse refreshed token" })?;
-                                    if let Some(acc) = v.get("access_token").and_then(|x| x.as_str()) {
+                                        .context(WreqSnafu {
+                                            msg: "Failed to refresh CLI OAuth token",
+                                        })?;
+                                    let v: serde_json::Value =
+                                        resp.json().await.context(WreqSnafu {
+                                            msg: "Failed to parse refreshed token",
+                                        })?;
+                                    if let Some(acc) =
+                                        v.get("access_token").and_then(|x| x.as_str())
+                                    {
                                         result_token = acc.to_string();
                                         t.token = result_token.clone().into();
-                                        if let Some(ei) = v.get("expires_in").and_then(|x| x.as_i64()) {
-                                            t.expiry = Some(chrono::Utc::now() + chrono::Duration::seconds(ei));
+                                        if let Some(ei) =
+                                            v.get("expires_in").and_then(|x| x.as_i64())
+                                        {
+                                            t.expiry = Some(
+                                                chrono::Utc::now() + chrono::Duration::seconds(ei),
+                                            );
                                         }
                                         let _ = self.cli_handle.return_token(t.clone()).await;
                                     }
@@ -253,15 +280,24 @@ impl GeminiState {
                         }
                     }
                     let project = t.meta.as_ref().and_then(|m| m.project_id.clone());
-                    info!("[CLI TOKEN] {}", result_token.chars().take(10).collect::<String>());
+                    info!(
+                        "[CLI TOKEN] {}",
+                        result_token.chars().take(10).collect::<String>()
+                    );
                     (result_token, project)
                 }
             };
             let bearer = format!("Bearer {}", token);
             // CLI endpoints must always call Code Assist, regardless of request format
-            let method = if self.stream { "v1internal:streamGenerateContent" } else { "v1internal:generateContent" };
+            let method = if self.stream {
+                "v1internal:streamGenerateContent"
+            } else {
+                "v1internal:generateContent"
+            };
             let mut endpoint = format!("https://cloudcode-pa.googleapis.com/{method}");
-            if self.stream { endpoint.push_str("?alt=sse"); }
+            if self.stream {
+                endpoint.push_str("?alt=sse");
+            }
             let payload = serde_json::json!({
                 "model": self.model,
                 "project": project_id.unwrap_or_default(),
@@ -273,12 +309,16 @@ impl GeminiState {
                 .json(&payload)
                 .send()
                 .await
-                .context(WreqSnafu { msg: "Failed to send request to Code Assist API (CLI bearer)" })?
+                .context(WreqSnafu {
+                    msg: "Failed to send request to Code Assist API (CLI bearer)",
+                })?
         } else {
             // Default: use API key pool
             self.request_key().await?;
             let Some(key) = self.key.to_owned() else {
-                return Err(ClewdrError::UnexpectedNone { msg: "Key is None, did you request a key?" });
+                return Err(ClewdrError::UnexpectedNone {
+                    msg: "Key is None, did you request a key?",
+                });
             };
             info!("[KEY] {}", key.key.ellipse().green());
             let key = key.key.to_string();
@@ -292,7 +332,9 @@ impl GeminiState {
                         .json(&p)
                         .send()
                         .await
-                        .context(WreqSnafu { msg: "Failed to send request to Gemini API" })?
+                        .context(WreqSnafu {
+                            msg: "Failed to send request to Gemini API",
+                        })?
                 }
                 GeminiApiFormat::OpenAI => self
                     .client
@@ -301,7 +343,9 @@ impl GeminiState {
                     .json(&p)
                     .send()
                     .await
-                    .context(WreqSnafu { msg: "Failed to send request to Gemini OpenAI API" })?,
+                    .context(WreqSnafu {
+                        msg: "Failed to send request to Gemini OpenAI API",
+                    })?,
             }
         };
         let res = res.check_gemini().await?;

@@ -323,3 +323,32 @@ export async function storageStatus() {
   }
   return await response.json();
 }
+
+// --- Codex OAuth management ---
+export async function codexStartAuth() {
+  const admin = localStorage.getItem("authToken") || "";
+  const res = await fetch("/api/codex/oauth/start", {
+    headers: { Authorization: `Bearer ${admin}` },
+  });
+  if (!res.ok) throw new Error("Failed to start Codex OAuth");
+  return await res.json(); // { auth_url }
+}
+
+export async function codexTokens() {
+  const admin = localStorage.getItem("authToken") || "";
+  const res = await fetch("/api/codex/tokens", {
+    headers: { Authorization: `Bearer ${admin}` },
+  });
+  if (!res.ok) throw new Error("Failed to get Codex tokens");
+  return await res.json();
+}
+
+export async function codexLogout() {
+  const admin = localStorage.getItem("authToken") || "";
+  const res = await fetch("/api/codex/logout", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${admin}` },
+  });
+  if (!res.ok) throw new Error("Failed to logout Codex");
+  return await res.json();
+}

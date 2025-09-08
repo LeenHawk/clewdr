@@ -13,7 +13,11 @@ pub mod entity_config {
     }
     #[derive(Copy, Clone, Debug, EnumIter)]
     pub enum Relation {}
-    impl RelationTrait for Relation { fn def(&self) -> RelationDef { panic!() } }
+    impl RelationTrait for Relation {
+        fn def(&self) -> RelationDef {
+            panic!()
+        }
+    }
     impl ActiveModelBehavior for ActiveModel {}
 }
 
@@ -39,7 +43,11 @@ pub mod entity_cookie {
     }
     #[derive(Copy, Clone, Debug, EnumIter)]
     pub enum Relation {}
-    impl RelationTrait for Relation { fn def(&self) -> RelationDef { panic!() } }
+    impl RelationTrait for Relation {
+        fn def(&self) -> RelationDef {
+            panic!()
+        }
+    }
     impl ActiveModelBehavior for ActiveModel {}
 }
 
@@ -54,7 +62,11 @@ pub mod entity_wasted {
     }
     #[derive(Copy, Clone, Debug, EnumIter)]
     pub enum Relation {}
-    impl RelationTrait for Relation { fn def(&self) -> RelationDef { panic!() } }
+    impl RelationTrait for Relation {
+        fn def(&self) -> RelationDef {
+            panic!()
+        }
+    }
     impl ActiveModelBehavior for ActiveModel {}
 }
 
@@ -69,13 +81,24 @@ pub mod entity_key {
     }
     #[derive(Copy, Clone, Debug, EnumIter)]
     pub enum Relation {}
-    impl RelationTrait for Relation { fn def(&self) -> RelationDef { panic!() } }
+    impl RelationTrait for Relation {
+        fn def(&self) -> RelationDef {
+            panic!()
+        }
+    }
     impl ActiveModelBehavior for ActiveModel {}
 }
 
 // Convenient aliases to match previous names used in code
-pub use entity_config::{Entity as EntityConfig, Column as ColumnConfig, ActiveModel as ActiveModelConfig};
-pub use entity_cookie::{Entity as EntityCookie, Column as ColumnCookie, ActiveModel as ActiveModelCookie};
-pub use entity_wasted::{Entity as EntityWasted, Column as ColumnWasted, ActiveModel as ActiveModelWasted};
-pub use entity_key::{Entity as EntityKeyRow, Column as ColumnKeyRow, ActiveModel as ActiveModelKeyRow};
-
+pub use entity_config::{
+    ActiveModel as ActiveModelConfig, Column as ColumnConfig, Entity as EntityConfig,
+};
+pub use entity_cookie::{
+    ActiveModel as ActiveModelCookie, Column as ColumnCookie, Entity as EntityCookie,
+};
+pub use entity_key::{
+    ActiveModel as ActiveModelKeyRow, Column as ColumnKeyRow, Entity as EntityKeyRow,
+};
+pub use entity_wasted::{
+    ActiveModel as ActiveModelWasted, Column as ColumnWasted, Entity as EntityWasted,
+};

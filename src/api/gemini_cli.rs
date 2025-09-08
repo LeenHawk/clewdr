@@ -1,10 +1,5 @@
 use async_stream::stream;
-use axum::{
-    body::Body,
-    extract::State,
-    response::Response,
-    Json,
-};
+use axum::{Json, body::Body, extract::State, response::Response};
 use bytes::Bytes;
 use colored::Colorize;
 use futures::StreamExt;
@@ -13,13 +8,16 @@ use serde::Serialize;
 use serde_json::json;
 use tracing::info;
 
+use crate::api::gemini::handle_gemini_request;
 use crate::{
     error::ClewdrError,
     gemini_state::{GeminiApiFormat, GeminiState},
     middleware::gemini::{GeminiContext, GeminiOaiPreprocess, GeminiPreprocess},
-    types::{gemini::request::{GeminiRequestBody, SystemInstruction}, oai::CreateMessageParams},
+    types::{
+        gemini::request::{GeminiRequestBody, SystemInstruction},
+        oai::CreateMessageParams,
+    },
 };
-use crate::api::gemini::handle_gemini_request;
 
 const DONE_MARKER: &str = "[done]";
 const CONTINUATION_PROMPT: &str = "请从刚才被截断的地方继续输出剩余的所有内容。\n不要重复前面已经输出的内容。\n当你完整完成所有内容输出后，必须在最后一行单独输出：[done]";
@@ -247,16 +245,15 @@ fn gemini_cli_model_info(name: &str) -> serde_json::Value {
 
 pub async fn api_gemini_cli_models() -> Result<Json<serde_json::Value>, ClewdrError> {
     // Provide a reasonable default list
-    let models = [
-        "gemini-2.5-pro",
-        "gemini-2.5-flash",
-    ];
+    let models = ["gemini-2.5-pro", "gemini-2.5-flash"];
     let items: Vec<_> = models.iter().map(|m| gemini_cli_model_info(m)).collect();
     Ok(Json(json!({ "models": items })))
 }
 
 use axum::extract::Path;
-pub async fn api_gemini_cli_model_info(Path(path): Path<String>) -> Result<Json<serde_json::Value>, ClewdrError> {
+pub async fn api_gemini_cli_model_info(
+    Path(path): Path<String>,
+) -> Result<Json<serde_json::Value>, ClewdrError> {
     // Accept either `models/<id>` or `<id>`
     let id = path.strip_prefix("models/").unwrap_or(path.as_str());
     Ok(Json(gemini_cli_model_info(id)))

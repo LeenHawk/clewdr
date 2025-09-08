@@ -177,6 +177,10 @@ pub struct ClewdrConfig {
     // Skip field, can hot reload
     #[serde(skip)]
     pub wreq_proxy: Option<Proxy>,
+
+    // Codex (ChatGPT) OAuth configuration
+    #[serde(default)]
+    pub codex: CodexConfig,
 }
 
 impl Default for ClewdrConfig {
@@ -214,6 +218,7 @@ impl Default for ClewdrConfig {
             custom_system: None,
             no_fs: false,
             log_to_file: false,
+            codex: Default::default(),
         }
     }
 }
@@ -282,11 +287,7 @@ impl Display for ClewdrConfig {
             PersistenceMode::Sqlite => writeln!(
                 f,
                 "Persistence: sqlite{}",
-                self.persistence
-                    .sqlite_path
-                    .as_deref()
-                    .unwrap_or("")
-                    .blue()
+                self.persistence.sqlite_path.as_deref().unwrap_or("").blue()
             )?,
             PersistenceMode::Postgres => writeln!(
                 f,
@@ -426,16 +427,12 @@ impl ClewdrConfig {
         if self.no_fs {
             return Ok(());
         }
-        if let Some(parent) = CONFIG_PATH.parent() && !parent.exists() {
+        if let Some(parent) = CONFIG_PATH.parent()
+            && !parent.exists()
+        {
             tokio::fs::create_dir_all(parent).await?;
         }
-        Ok(
-            tokio::fs::write(
-                CONFIG_PATH.as_path(),
-                toml::ser::to_string_pretty(self)?,
-            )
-            .await?,
-        )
+        Ok(tokio::fs::write(CONFIG_PATH.as_path(), toml::ser::to_string_pretty(self)?).await?)
     }
 
     /// Validate the configuration
@@ -455,6 +452,72 @@ impl ClewdrConfig {
                 })
                 .ok()
         });
+        // Validate Codex config
+        self.codex = self.codex.validate();
         self
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct CodexConfig {
+    #[serde(default)]
+    pub client_id: Option<String>,
+    #[serde(default)]
+    pub tokens: CodexTokens,
+    /// Optional base URL prefix used to build the OAuth callback redirect_uri.
+    /// Example: "https://your-domain.example.com" (no trailing slash needed)
+    /// If not set, defaults to "http://localhost:{port}" where port is the server listen port.
+    #[serde(default)]
+    pub oauth_redirect_prefix: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct CodexTokens {
+    #[serde(default)]
+    pub id_token: Option<String>,
+    #[serde(default)]
+    pub access_token: Option<String>,
+    #[serde(default)]
+    pub refresh_token: Option<String>,
+    #[serde(default)]
+    pub account_id: Option<String>,
+    #[serde(default)]
+    pub last_refresh: Option<String>,
+    #[serde(default)]
+    pub api_key: Option<String>,
+}
+
+impl CodexConfig {
+    pub fn validate(mut self) -> Self {
+        // Allow override via env variable commonly used by ChatMock
+        if self.client_id.is_none() {
+            if let Ok(env_id) = std::env::var("CHATGPT_LOCAL_CLIENT_ID") {
+                if !env_id.trim().is_empty() {
+                    self.client_id = Some(env_id);
+                }
+            }
+        }
+        self
+    }
+
+    pub fn effective_client_id(&self) -> String {
+        self.client_id
+            .as_deref()
+            .unwrap_or(super::constants::CODEX_CLIENT_ID_DEFAULT)
+            .to_string()
+    }
+
+    pub fn is_authenticated(&self) -> bool {
+        self.tokens
+            .access_token
+            .as_deref()
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+            && self
+                .tokens
+                .account_id
+                .as_deref()
+                .map(|s| !s.is_empty())
+                .unwrap_or(false)
     }
 }

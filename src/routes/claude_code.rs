@@ -1,4 +1,8 @@
-use axum::{Router, routing::{get, post}, middleware::{from_extractor, map_response}};
+use axum::{
+    Router,
+    middleware::{from_extractor, map_response},
+    routing::{get, post},
+};
 use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
 
@@ -31,4 +35,3 @@ pub fn build_claude_code_oai_router(state: ClaudeCodeState) -> Router {
         )
         .with_state(state)
 }
-

@@ -6,11 +6,11 @@ use serde::Serialize;
 use snafu::{GenerateImplicitData, Location};
 use tracing::{error, info, warn};
 
+use crate::persistence::StorageLayer;
 use crate::{
     config::{CLEWDR_CONFIG, ClewdrConfig, CookieStatus, Reason, UselessCookie},
     error::ClewdrError,
 };
-use crate::persistence::StorageLayer;
 
 const INTERVAL: u64 = 300;
 
@@ -48,7 +48,9 @@ struct CookieActorState {
 }
 
 /// Cookie actor that handles cookie distribution, collection, and status tracking using Ractor
-struct CookieActor { storage: &'static dyn StorageLayer }
+struct CookieActor {
+    storage: &'static dyn StorageLayer,
+}
 
 impl CookieActor {
     /// Saves the current state of cookies to the configuration
@@ -382,7 +384,9 @@ impl CookieActorHandle {
     }
 
     /// Create a new CookieActor with injected storage layer
-    pub async fn start_with_storage(storage: &'static dyn StorageLayer) -> Result<Self, ractor::SpawnErr> {
+    pub async fn start_with_storage(
+        storage: &'static dyn StorageLayer,
+    ) -> Result<Self, ractor::SpawnErr> {
         let (actor_ref, _join_handle) = Actor::spawn(None, CookieActor { storage }, ()).await?;
 
         // Start the timeout checker

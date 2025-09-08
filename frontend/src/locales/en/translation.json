@@ -27,7 +27,8 @@
     "config": "Config",
     "keys": "Keys",
     "auth": "Auth",
-    "cli": "CLI"
+    "cli": "CLI",
+    "codex": "Codex"
   },
   "cookieTab": {
     "submit": "Submit Cookie",
@@ -153,7 +154,19 @@
     "error": "Error: {{message}}",
     "reveal": "Reveal",
     "hide": "Hide",
-    "copy": "Copy to clipboard"
+    "copy": "Copy to clipboard",
+    "refresh": "Refresh"
+  },
+  "codex": {
+    "title": "Codex OAuth Login",
+    "desc": "Login with your ChatGPT account to enable Codex reverse-proxy (OpenAI-compatible).",
+    "startLogin": "Start Login",
+    "logout": "Logout",
+    "status": "Current Status",
+    "authenticated": "Authenticated",
+    "accountId": "Account ID",
+    "lastRefresh": "Last Refresh",
+    "noStatus": "No status yet, click refresh."
   },
   "keyTab": {
     "submit": "Submit Key",

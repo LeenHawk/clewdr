@@ -1,6 +1,6 @@
+use chrono::{DateTime, Utc};
 use std::fmt::Display;
 use std::hash::Hash;
-use chrono::{DateTime, Utc};
 
 use serde::{Deserialize, Serialize};
 use tracing::warn;
@@ -27,7 +27,9 @@ impl From<String> for CliBearerToken {
 }
 
 impl From<CliBearerToken> for String {
-    fn from(v: CliBearerToken) -> Self { v.inner }
+    fn from(v: CliBearerToken) -> Self {
+        v.inner
+    }
 }
 
 impl Display for CliBearerToken {
@@ -39,7 +41,11 @@ impl Display for CliBearerToken {
 impl CliBearerToken {
     pub fn ellipse(&self) -> String {
         let len = self.inner.len();
-        if len > 10 { format!("{}...", &self.inner[..10]) } else { self.inner.to_owned() }
+        if len > 10 {
+            format!("{}...", &self.inner[..10])
+        } else {
+            self.inner.to_owned()
+        }
     }
 }
 
@@ -51,7 +57,7 @@ pub struct CliTokenStatus {
     #[serde(default)]
     pub expiry: Option<DateTime<Utc>>, // when the access token expires
     #[serde(default)]
-    pub meta: Option<CliOAuthMeta>,    // optional refresh info
+    pub meta: Option<CliOAuthMeta>, // optional refresh info
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Default)]
@@ -71,5 +77,7 @@ pub struct CliOAuthMeta {
 }
 
 impl CliTokenStatus {
-    pub fn validate(&self) -> bool { !self.token.inner.is_empty() }
+    pub fn validate(&self) -> bool {
+        !self.token.inner.is_empty()
+    }
 }
