@@ -34,11 +34,50 @@
   },
   "geminiTabs": {
     "aistudio": "AI Studio",
+    "cli": "CLI",
     "vertex": "Vertex AI"
   },
   "geminiAiStudio": {
     "submit": "Submit API Key",
-    "status": "Key Status"
+    "status": "Key Status",
+    "endpoints": {
+      "title": "Gemini API Endpoints",
+      "native": "Gemini native: {{url}} (query key required)",
+      "cli": "Gemini CLI native: {{url}} (query key required)",
+      "openai": "OpenAI compatible: {{url}}"
+    }
+  },
+  "geminiCli": {
+    "submit": "Upload CLI Credential",
+    "status": "CLI Credentials",
+    "empty": "No Gemini CLI credentials configured.",
+    "notifications": {
+      "uploaded": "CLI credential saved",
+      "deleted": "CLI credential deleted",
+      "fileLoaded": "File loaded"
+    },
+    "errors": {
+      "load": "Failed to load CLI credentials.",
+      "upload": "Failed to upload CLI credential.",
+      "delete": "Failed to delete CLI credential.",
+      "parse": "Invalid credential JSON.",
+      "empty": "Please paste the credential JSON.",
+      "missingFields": "Credential JSON must contain client_id and project_id.",
+      "readFile": "Failed to read the selected file."
+    },
+    "form": {
+      "instructions": "Paste the Gemini CLI credential JSON obtained from the gemini-cli tool.",
+      "placeholder": "{ \"client_id\": \"...\",\n  \"client_secret\": \"...\",\n  \"refresh_token\": \"...\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n  \"token\": \"...\",\n  \"project_id\": \"...\" }",
+      "jsonLabel": "CLI Credential JSON",
+      "chooseFile": "Choose JSON file",
+      "noFile": "No file selected",
+      "submitting": "Uploading...",
+      "button": "Upload"
+    },
+    "table": {
+      "clientId": "Client ID",
+      "expiry": "Expires"
+    }
   },
   "geminiVertex": {
     "tabUpload": "Upload Service Account",
@@ -236,7 +275,8 @@
     "reveal": "Reveal",
     "hide": "Hide",
     "copy": "Copy to clipboard",
-    "dbUnavailable": "Database storage is unavailable. Please check the database configuration and retry."
+    "dbUnavailable": "Database storage is unavailable. Please check the database configuration and retry.",
+    "unknown": "Unknown"
   },
   "keyTab": {
     "submit": "Submit Key",

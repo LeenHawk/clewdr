@@ -48,11 +48,7 @@ pub fn print_out_text(text: String, file_name: &str) {
             return;
         }
         if let Err(e) = tokio::fs::write(&path, text).await {
-            error!(
-                "Failed to write log file {}: {}",
-                path.display(),
-                e
-            );
+            error!("Failed to write log file {}: {}", path.display(), e);
         }
     });
 }

@@ -20,7 +20,10 @@ use tracing::error;
 use wreq::{Proxy, Url};
 use yup_oauth2::ServiceAccountKey;
 
-use super::{CONFIG_PATH, ENDPOINT_URL, key::KeyStatus};
+use super::{
+    CONFIG_PATH, DEFAULT_CODE_ASSIST_ENDPOINT, ENDPOINT_URL, GeminiCliCredential,
+    dedup_cli_credentials, key::KeyStatus,
+};
 use crate::{
     Args,
     config::{
@@ -116,6 +119,10 @@ pub struct ClewdrConfig {
     pub wasted_cookie: HashSet<UselessCookie>,
     #[serde(default)]
     pub gemini_keys: HashSet<KeyStatus>,
+    #[serde(default)]
+    pub gemini_cli_credentials: Vec<GeminiCliCredential>,
+    #[serde(default)]
+    pub gemini_cli_endpoint: Option<String>,
 
     // Persistence settings
     #[serde(default)]
@@ -202,6 +209,8 @@ impl Default for ClewdrConfig {
             cookie_array: HashSet::new(),
             wasted_cookie: HashSet::new(),
             gemini_keys: HashSet::new(),
+            gemini_cli_credentials: Vec::new(),
+            gemini_cli_endpoint: None,
             persistence: Default::default(),
             password: String::new(),
             admin_password: String::new(),
@@ -476,6 +485,13 @@ impl ClewdrConfig {
         }
         self.vertex.credentials = credentials;
         self.vertex.credential = None;
+        self.gemini_cli_credentials = dedup_cli_credentials(self.gemini_cli_credentials);
         self
+    }
+
+    pub fn code_assist_endpoint(&self) -> String {
+        self.gemini_cli_endpoint
+            .clone()
+            .unwrap_or_else(|| DEFAULT_CODE_ASSIST_ENDPOINT.to_string())
     }
 }

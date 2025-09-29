@@ -24,8 +24,7 @@ pub async fn ensure_conn() -> Result<DatabaseConnection, ClewdrError> {
             })?;
             if url.starts_with("sqlite://")
                 && !cfg.no_fs
-                && let Some(parent) =
-                    std::path::Path::new(&url["sqlite://".len()..]).parent()
+                && let Some(parent) = std::path::Path::new(&url["sqlite://".len()..]).parent()
             {
                 let _ = std::fs::create_dir_all(parent);
             }

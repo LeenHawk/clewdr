@@ -176,8 +176,9 @@ chmod +x clewdr
 #### 🔹 **Gemini 配置**
 
 1. **添加API密钥**: 输入您的 Google AI Studio 密钥
-2. **Vertex AI** (可选): 为企业配置OAuth2
-3. **模型选择**: 选择您偏好的模型
+2. **Gemini CLI**: 上传 gemini-cli 导出的 OAuth 凭证
+3. **Vertex AI** (可选): 为企业配置OAuth2
+4. **模型选择**: 选择您偏好的模型
 
 </td>
 </tr>
@@ -197,6 +198,7 @@ Claude Code:   http://127.0.0.1:8484/code/v1/messages     # Claude Code
 
 # Gemini 端点
 Gemini Native: http://127.0.0.1:8484/v1/v1beta/generateContent    # 原生格式
+Gemini CLI:    http://127.0.0.1:8484/gemini-cli/v1/v1beta/generateContent # Gemini CLI（原生）
 Gemini OpenAI: http://127.0.0.1:8484/gemini/chat/completions      # OpenAI兼容
 Vertex AI:     http://127.0.0.1:8484/v1/vertex/v1beta/            # Vertex AI
 ```

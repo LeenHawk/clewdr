@@ -1,4 +1,5 @@
 use axum::extract::{FromRequestParts, Query};
+use axum_auth::AuthBearer;
 use serde::Deserialize;
 use struct_iterable::Iterable;
 
@@ -29,14 +30,27 @@ where
             Ok(Query(q)) => Ok(q),
             Err(_) => {
                 let Query(q) = Query::<GeminiQueryAlt>::from_request_parts(parts, &()).await?;
-                // extract key from x-goog-api-key
+                // Prefer x-goog-api-key. If absent and this is gemini-cli route,
+                // accept Authorization: Bearer as a flexible auth option.
+                // x-goog-api-key first
                 let key = parts
                     .headers
                     .get("x-goog-api-key")
                     .and_then(|v| v.to_str().ok())
-                    .ok_or(ClewdrError::InvalidAuth)?;
+                    .map(|s| s.to_string());
+                let key = if let Some(k) = key {
+                    k
+                } else if parts.uri.path().contains("/gemini-cli/") {
+                    // Fallback to Authorization: Bearer for gemini-cli routes
+                    match AuthBearer::from_request_parts(parts, &()).await {
+                        Ok(AuthBearer(token)) => token,
+                        Err(_) => return Err(ClewdrError::InvalidAuth),
+                    }
+                } else {
+                    return Err(ClewdrError::InvalidAuth);
+                };
                 Ok(Self {
-                    key: key.to_string(),
+                    key,
                     alt: q.alt,
                 })
             }

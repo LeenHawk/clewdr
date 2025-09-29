@@ -14,7 +14,7 @@ use wreq::{Client, ClientBuilder, header::AUTHORIZATION};
 use yup_oauth2::{CustomHyperClientBuilder, ServiceAccountAuthenticator, ServiceAccountKey};
 
 use crate::{
-    config::{CLEWDR_CONFIG, GEMINI_ENDPOINT, KeyStatus},
+    config::{CLEWDR_CONFIG, GEMINI_ENDPOINT, GeminiCliCredential, KeyStatus},
     error::{CheckGeminiErr, ClewdrError, InvalidUriSnafu, WreqSnafu},
     middleware::gemini::*,
     services::key_actor::KeyActorHandle,
@@ -68,6 +68,7 @@ async fn get_token(sa_key: ServiceAccountKey) -> Result<String, ClewdrError> {
 pub struct GeminiState {
     pub model: String,
     pub vertex: bool,
+    pub cli: bool,
     pub path: String,
     pub key: Option<KeyStatus>,
     pub stream: bool,
@@ -76,6 +77,7 @@ pub struct GeminiState {
     pub api_format: GeminiApiFormat,
     pub client: Client,
     pub vertex_credential: Option<ServiceAccountKey>,
+    pub cli_credential: Option<GeminiCliCredential>,
 }
 
 impl GeminiState {
@@ -84,6 +86,7 @@ impl GeminiState {
         GeminiState {
             model: String::new(),
             vertex: false,
+            cli: false,
             path: String::new(),
             query: GeminiArgs::default(),
             stream: false,
@@ -92,6 +95,7 @@ impl GeminiState {
             api_format: GeminiApiFormat::Gemini,
             client: DUMMY_CLIENT.to_owned(),
             vertex_credential: None,
+            cli_credential: None,
         }
     }
 
@@ -122,7 +126,12 @@ impl GeminiState {
         self.query = ctx.query.to_owned();
         self.model = ctx.model.to_owned();
         self.vertex = ctx.vertex.to_owned();
+        self.cli = ctx.cli.to_owned();
         self.api_format = ctx.api_format.to_owned();
+    }
+
+    pub fn set_cli_credential(&mut self, cred: GeminiCliCredential) {
+        self.cli_credential = Some(cred);
     }
 
     async fn vertex_response(
@@ -201,6 +210,9 @@ impl GeminiState {
         &mut self,
         p: impl Sized + Serialize,
     ) -> Result<wreq::Response, ClewdrError> {
+        if self.cli {
+            return self.cli_response(p).await;
+        }
         if self.vertex {
             let res = self.vertex_response(p).await?;
             return Ok(res);
@@ -291,7 +303,9 @@ impl GeminiState {
     }
 
     async fn check_empty_choices(&self, resp: wreq::Response) -> Result<Response, ClewdrError> {
-        if self.stream {
+        // In CLI (Code Assist) mode or streaming mode, forward raw response without
+        // attempting to parse GeminiResponse to avoid schema mismatches.
+        if self.stream || self.cli {
             return forward_response(resp);
         }
         let bytes = resp.bytes().await.context(WreqSnafu {
@@ -321,5 +335,60 @@ impl GeminiState {
         Ok(Response::builder()
             .header(CONTENT_TYPE, "application/json")
             .body(bytes.into())?)
+    }
+
+    async fn cli_response(
+        &mut self,
+        p: impl Sized + Serialize,
+    ) -> Result<wreq::Response, ClewdrError> {
+        const CLI_USER_AGENT: &str = "geminicli/0.1.5";
+        let Some(cred) = self.cli_credential.clone() else {
+            return Err(ClewdrError::BadRequest {
+                msg: "Gemini CLI credential not configured",
+            });
+        };
+        let mut client = ClientBuilder::new();
+        if let Some(proxy) = CLEWDR_CONFIG.load().wreq_proxy.to_owned() {
+            client = client.proxy(proxy);
+        }
+        self.client = client.build().context(WreqSnafu {
+            msg: "Failed to build Gemini client",
+        })?;
+
+        let endpoint = CLEWDR_CONFIG.load().code_assist_endpoint();
+        let action = if self.stream {
+            "streamGenerateContent"
+        } else {
+            "generateContent"
+        };
+        let base = endpoint.trim_end_matches('/');
+        let mut url = format!("{base}/v1internal:{action}");
+        if self.stream {
+            url.push_str("?alt=sse");
+        }
+
+        let request_payload = serde_json::to_value(&p)?;
+        // For Code Assist (cloudcode-pa.googleapis.com), the payload expects plain model name
+        // rather than the "models/<name>" form used by the public generativelanguage endpoint.
+        // Align with gcli2api behavior to avoid NOT_FOUND from Code Assist.
+        let payload = serde_json::json!({
+            "model": self.model,
+            "project": cred.project_id,
+            "request": request_payload,
+        });
+
+        let res = self
+            .client
+            .post(url)
+            .header(AUTHORIZATION, format!("Bearer {}", cred.token))
+            .header("User-Agent", CLI_USER_AGENT)
+            .json(&payload)
+            .send()
+            .await
+            .context(WreqSnafu {
+                msg: "Failed to send request to Gemini CLI API",
+            })?;
+        let res = res.check_gemini().await?;
+        Ok(res)
     }
 }

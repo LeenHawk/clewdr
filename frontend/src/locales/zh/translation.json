@@ -34,11 +34,50 @@
   },
   "geminiTabs": {
     "aistudio": "AI Studio",
+    "cli": "CLI",
     "vertex": "Vertex AI"
   },
   "geminiAiStudio": {
     "submit": "提交API密钥",
-    "status": "密钥状态"
+    "status": "密钥状态",
+    "endpoints": {
+      "title": "Gemini 接入端点",
+      "native": "Gemini 原生：{{url}}（需携带查询密钥）",
+      "cli": "Gemini CLI 原生：{{url}}（需携带查询密钥）",
+      "openai": "OpenAI 兼容：{{url}}"
+    }
+  },
+  "geminiCli": {
+    "submit": "上传 CLI 凭证",
+    "status": "CLI 凭证",
+    "empty": "尚未配置任何 Gemini CLI 凭证。",
+    "notifications": {
+      "uploaded": "CLI 凭证已保存",
+      "deleted": "CLI 凭证已删除",
+      "fileLoaded": "文件已加载"
+    },
+    "errors": {
+      "load": "无法加载 CLI 凭证。",
+      "upload": "上传 CLI 凭证失败。",
+      "delete": "删除 CLI 凭证失败。",
+      "parse": "凭证 JSON 无效。",
+      "empty": "请粘贴凭证 JSON。",
+      "missingFields": "凭证 JSON 必须包含 client_id 和 project_id。",
+      "readFile": "读取文件失败。"
+    },
+    "form": {
+      "instructions": "粘贴从 gemini-cli 工具导出的凭证 JSON。",
+      "placeholder": "{ \"client_id\": \"...\",\n  \"client_secret\": \"...\",\n  \"refresh_token\": \"...\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n  \"token\": \"...\",\n  \"project_id\": \"...\" }",
+      "jsonLabel": "CLI 凭证 JSON",
+      "chooseFile": "选择 JSON 文件",
+      "noFile": "未选择文件",
+      "submitting": "上传中...",
+      "button": "上传"
+    },
+    "table": {
+      "clientId": "Client ID",
+      "expiry": "过期时间"
+    }
   },
   "geminiVertex": {
     "tabUpload": "上传服务账号",
@@ -236,7 +275,8 @@
     "reveal": "显示",
     "hide": "隐藏",
     "copy": "复制到剪贴板",
-    "dbUnavailable": "数据库存储不可用，请检查数据库配置后重试。"
+    "dbUnavailable": "数据库存储不可用，请检查数据库配置后重试。",
+    "unknown": "未知"
   },
   "keyTab": {
     "submit": "提交密钥",

@@ -176,8 +176,9 @@ chmod +x clewdr
 #### 🔹 **Gemini Setup**
 
 1. **Add API Keys**: Input your Google AI Studio keys
-2. **Vertex AI** (Optional): Configure OAuth2 for enterprise
-3. **Model Selection**: Choose your preferred models
+2. **Gemini CLI**: Upload gemini-cli generated OAuth credentials
+3. **Vertex AI** (Optional): Configure OAuth2 for enterprise
+4. **Model Selection**: Choose your preferred models
 
 </td>
 </tr>
@@ -197,6 +198,7 @@ Claude Code:   http://127.0.0.1:8484/code/v1/messages     # Claude Code
 
 # Gemini Endpoints  
 Gemini Native: http://127.0.0.1:8484/v1/v1beta/generateContent    # Native format
+Gemini CLI:    http://127.0.0.1:8484/gemini-cli/v1/v1beta/generateContent # Gemini CLI (native)
 Gemini OpenAI: http://127.0.0.1:8484/gemini/chat/completions      # OpenAI compatible
 Vertex AI:     http://127.0.0.1:8484/v1/vertex/v1beta/            # Vertex AI
 ```

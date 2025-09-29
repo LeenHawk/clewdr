@@ -21,6 +21,14 @@ pub async fn api_post_gemini(
                 context: ctx,
             })
             .await
+    } else if ctx.cli {
+        providers
+            .cli()
+            .invoke(GeminiInvocation {
+                payload: GeminiPayload::Native(body),
+                context: ctx,
+            })
+            .await
     } else {
         providers
             .ai_studio()

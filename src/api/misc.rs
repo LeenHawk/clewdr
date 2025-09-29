@@ -9,7 +9,10 @@ use yup_oauth2::ServiceAccountKey;
 
 use crate::{
     VERSION_INFO,
-    config::{CLEWDR_CONFIG, ClewdrConfig, CookieStatus, KeyStatus},
+    config::{
+        CLEWDR_CONFIG, ClewdrConfig, CookieStatus, GeminiCliCredential, GeminiCliCredentialSummary,
+        KeyStatus,
+    },
     persistence,
     services::{
         cookie_actor::{CookieActorHandle, CookieStatusInfo},
@@ -22,6 +25,26 @@ const DB_UNAVAILABLE_MESSAGE: &str = "Database storage is unavailable";
 #[derive(Deserialize)]
 pub struct VertexCredentialPayload {
     pub credential: ServiceAccountKey,
+}
+
+#[derive(Deserialize)]
+pub struct GeminiCliCredentialPayload {
+    pub credential: GeminiCliCredential,
+}
+
+#[derive(Deserialize)]
+pub struct GeminiCliCredentialDeletePayload {
+    pub client_id: String,
+    pub project_id: String,
+}
+
+#[derive(Serialize)]
+pub struct GeminiCliCredentialInfo {
+    pub client_id: String,
+    pub project_id: String,
+    pub scopes: Vec<String>,
+    pub expiry: Option<String>,
+    pub has_refresh_token: bool,
 }
 
 #[derive(Deserialize)]
@@ -189,6 +212,105 @@ pub async fn api_post_vertex_credential(
 
     info!("Vertex credential accepted: {}", client_email);
     Ok(StatusCode::OK)
+}
+
+pub async fn api_get_gemini_cli_credentials(
+    AuthBearer(t): AuthBearer,
+) -> Result<Json<Vec<GeminiCliCredentialInfo>>, ApiError> {
+    if !CLEWDR_CONFIG.load().admin_auth(&t) {
+        return Err(ApiError::unauthorized());
+    }
+    let infos = CLEWDR_CONFIG
+        .load()
+        .gemini_cli_credentials
+        .iter()
+        .map(GeminiCliCredentialSummary::from)
+        .map(|summary| GeminiCliCredentialInfo {
+            client_id: summary.client_id,
+            project_id: summary.project_id,
+            scopes: summary.scopes,
+            expiry: summary.expiry.map(|dt| dt.to_rfc3339()),
+            has_refresh_token: summary.has_refresh_token,
+        })
+        .collect();
+    Ok(Json(infos))
+}
+
+pub async fn api_post_gemini_cli_credential(
+    AuthBearer(t): AuthBearer,
+    Json(payload): Json<GeminiCliCredentialPayload>,
+) -> Result<StatusCode, ApiError> {
+    if !CLEWDR_CONFIG.load().admin_auth(&t) {
+        return Err(ApiError::unauthorized());
+    }
+    ensure_db_writable().await?;
+    let credential = payload.credential;
+    if !credential.is_valid() {
+        return Err(ApiError::bad_request("Invalid Gemini CLI credential"));
+    }
+
+    let identifier = credential.identifier();
+
+    CLEWDR_CONFIG.rcu(|config| {
+        let mut new_config = ClewdrConfig::clone(config);
+        new_config
+            .gemini_cli_credentials
+            .retain(|cred| cred.identifier() != identifier);
+        new_config.gemini_cli_credentials.push(credential.clone());
+        new_config = new_config.validate();
+        new_config
+    });
+
+    if let Err(e) = CLEWDR_CONFIG.load().save().await {
+        error!("Failed to persist Gemini CLI credential: {}", e);
+        return Err(ApiError::internal(format!(
+            "Failed to persist Gemini CLI credential: {}",
+            e
+        )));
+    }
+
+    info!("Gemini CLI credential accepted: {}", identifier);
+    Ok(StatusCode::OK)
+}
+
+pub async fn api_delete_gemini_cli_credential(
+    AuthBearer(t): AuthBearer,
+    Json(payload): Json<GeminiCliCredentialDeletePayload>,
+) -> Result<StatusCode, ApiError> {
+    if !CLEWDR_CONFIG.load().admin_auth(&t) {
+        return Err(ApiError::unauthorized());
+    }
+    ensure_db_writable().await?;
+    let identifier = format!("{}::{}", payload.client_id, payload.project_id);
+
+    let exists = CLEWDR_CONFIG
+        .load()
+        .gemini_cli_credentials
+        .iter()
+        .any(|cred| cred.identifier() == identifier);
+
+    if !exists {
+        return Err(ApiError::bad_request("Credential not found"));
+    }
+
+    CLEWDR_CONFIG.rcu(|config| {
+        let mut new_config = ClewdrConfig::clone(config);
+        new_config
+            .gemini_cli_credentials
+            .retain(|cred| cred.identifier() != identifier);
+        new_config
+    });
+
+    if let Err(e) = CLEWDR_CONFIG.load().save().await {
+        error!("Failed to delete Gemini CLI credential: {}", e);
+        return Err(ApiError::internal(format!(
+            "Failed to delete Gemini CLI credential: {}",
+            e
+        )));
+    }
+
+    info!("Gemini CLI credential removed: {}", identifier);
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn api_delete_vertex_credential(

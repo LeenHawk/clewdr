@@ -68,8 +68,12 @@ impl RouterBuilder {
 
     fn route_gemini_endpoints(mut self) -> Self {
         let router_gemini = Router::new()
+            // Native Gemini (AI Studio) format
             .route("/v1/v1beta/{*path}", post(api_post_gemini))
+            // Vertex AI Gemini native format
             .route("/v1/vertex/v1beta/{*path}", post(api_post_gemini))
+            // Gemini CLI (Code Assist) surface – same handler, detected via URI
+            .route("/gemini-cli/v1/v1beta/{*path}", post(api_post_gemini))
             .layer(from_extractor::<RequireQueryKeyAuth>())
             .layer(CompressionLayer::new())
             .with_state(self.gemini_providers.clone());
@@ -135,6 +139,15 @@ impl RouterBuilder {
                 "/vertex/credential",
                 post(api_post_vertex_credential).delete(api_delete_vertex_credential),
             );
+        let gemini_cli_router = Router::new()
+            .route(
+                "/gemini/cli/credentials",
+                get(api_get_gemini_cli_credentials),
+            )
+            .route(
+                "/gemini/cli/credential",
+                post(api_post_gemini_cli_credential).delete(api_delete_gemini_cli_credential),
+            );
         let admin_router = Router::new()
             .route("/auth", get(api_auth))
             .route("/config", get(api_get_config).put(api_post_config))
@@ -147,6 +160,7 @@ impl RouterBuilder {
                 cookie_router
                     .merge(key_router)
                     .merge(vertex_router)
+                    .merge(gemini_cli_router)
                     .merge(admin_router)
                     .layer(from_extractor::<RequireAdminAuth>()),
             )

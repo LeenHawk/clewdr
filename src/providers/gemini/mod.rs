@@ -29,6 +29,9 @@ use crate::{
     utils::enabled,
 };
 
+mod cli;
+
+use self::cli::{GeminiCliCredentialPool, GeminiCliProvider};
 use super::LLMProvider;
 
 #[derive(Clone)]
@@ -47,14 +50,24 @@ pub struct GeminiInvocation {
 pub struct GeminiProviders {
     ai_studio: Arc<GeminiAiStudioProvider>,
     vertex: Arc<GeminiVertexProvider>,
+    cli: Arc<GeminiCliProvider>,
 }
 
 impl GeminiProviders {
     pub fn new(key_actor_handle: KeyActorHandle) -> Self {
         let credential_pool = Arc::new(VertexCredentialPool::default());
+        let cli_pool = Arc::new(GeminiCliCredentialPool::default());
         let ai_studio = Arc::new(GeminiAiStudioProvider::new(key_actor_handle.clone()));
-        let vertex = Arc::new(GeminiVertexProvider::new(key_actor_handle, credential_pool));
-        Self { ai_studio, vertex }
+        let vertex = Arc::new(GeminiVertexProvider::new(
+            key_actor_handle.clone(),
+            credential_pool,
+        ));
+        let cli = Arc::new(GeminiCliProvider::new(key_actor_handle, cli_pool));
+        Self {
+            ai_studio,
+            vertex,
+            cli,
+        }
     }
 
     pub fn ai_studio(&self) -> Arc<GeminiAiStudioProvider> {
@@ -63,6 +76,10 @@ impl GeminiProviders {
 
     pub fn vertex(&self) -> Arc<GeminiVertexProvider> {
         self.vertex.clone()
+    }
+
+    pub fn cli(&self) -> Arc<GeminiCliProvider> {
+        self.cli.clone()
     }
 }
 
@@ -195,9 +212,10 @@ fn log_request(ctx: &GeminiContext) {
         ctx.api_format.to_string().yellow()
     };
     info!(
-        "[REQ] stream: {}, vertex: {}, format: {}, model: {}",
+        "[REQ] stream: {}, vertex: {}, cli: {}, format: {}, model: {}",
         enabled(ctx.stream),
         enabled(ctx.vertex),
+        enabled(ctx.cli),
         format_label,
         ctx.model.green()
     );

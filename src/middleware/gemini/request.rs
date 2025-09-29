@@ -15,6 +15,7 @@ use crate::{
 pub struct GeminiContext {
     pub model: String,
     pub vertex: bool,
+    pub cli: bool,
     pub stream: bool,
     pub path: String,
     pub query: GeminiArgs,
@@ -31,7 +32,9 @@ where
 
     async fn from_request(mut req: Request, _: &S) -> Result<Self, Self::Rejection> {
         let Path(path) = req.extract_parts::<Path<String>>().await?;
-        let vertex = req.uri().to_string().contains("vertex");
+        let uri = req.uri().to_string();
+        let vertex = uri.contains("vertex");
+        let cli = uri.contains("/gemini-cli/");
         if vertex && !CLEWDR_CONFIG.load().vertex.validate() {
             return Err(ClewdrError::BadRequest {
                 msg: "Vertex is not configured",
@@ -49,6 +52,7 @@ where
         let query = req.extract_parts::<GeminiArgs>().await?;
         let ctx = GeminiContext {
             vertex,
+            cli,
             model,
             stream: path.contains("streamGenerateContent"),
             path,
@@ -70,7 +74,9 @@ where
     type Rejection = ClewdrError;
 
     async fn from_request(req: Request, _: &S) -> Result<Self, Self::Rejection> {
-        let vertex = req.uri().to_string().contains("vertex");
+        let uri = req.uri().to_string();
+        let vertex = uri.contains("vertex");
+        let cli = uri.contains("/gemini-cli/");
         if vertex && !CLEWDR_CONFIG.load().vertex.validate() {
             return Err(ClewdrError::BadRequest {
                 msg: "Vertex is not configured",
@@ -84,6 +90,7 @@ where
         let stream = body.stream.unwrap_or_default();
         let ctx = GeminiContext {
             vertex,
+            cli,
             model,
             stream,
             path: String::new(),
