@@ -72,8 +72,19 @@ impl RouterBuilder {
             .route("/v1/v1beta/{*path}", post(api_post_gemini))
             // Vertex AI Gemini native format
             .route("/v1/vertex/v1beta/{*path}", post(api_post_gemini))
+            .layer(from_extractor::<RequireQueryKeyAuth>())
+            .layer(CompressionLayer::new())
+            .with_state(self.gemini_providers.clone());
+        let router_cli = Router::new()
             // Gemini CLI (Code Assist) surface – same handler, detected via URI
-            .route("/gemini-cli/v1/v1beta/{*path}", post(api_post_gemini))
+            .route("/gemini/cli/v1/v1beta/{*path}", post(api_post_gemini))
+            .route("/gemini/cli/vertex/v1beta/{*path}", post(api_post_gemini))
+            .route("/gemini/cli/v1/models", get(api_gemini_cli_models))
+            .route("/gemini/cli/v1beta/models", get(api_gemini_cli_models))
+            .route(
+                "/gemini/cli/v1/models/{*path}",
+                get(api_gemini_cli_model_info),
+            )
             .layer(from_extractor::<RequireQueryKeyAuth>())
             .layer(CompressionLayer::new())
             .with_state(self.gemini_providers.clone());
@@ -83,7 +94,7 @@ impl RouterBuilder {
             .layer(from_extractor::<RequireBearerAuth>())
             .layer(CompressionLayer::new())
             .with_state(self.gemini_providers.clone());
-        let router = router_gemini.merge(router_oai);
+        let router = router_gemini.merge(router_cli).merge(router_oai);
         self.inner = self.inner.merge(router);
         self
     }

@@ -10,7 +10,7 @@ const AiStudioTabs: React.FC = () => {
 
   const endpointNative = "http://127.0.0.1:8484/v1/v1beta/generateContent";
   const endpointCli =
-    "http://127.0.0.1:8484/gemini-cli/v1/v1beta/generateContent";
+    "http://127.0.0.1:8484/gemini/cli/v1/v1beta/generateContent";
   const endpointOai = "http://127.0.0.1:8484/gemini/chat/completions";
 
   const tabs = [

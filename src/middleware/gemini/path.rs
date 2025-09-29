@@ -30,7 +30,7 @@ where
             Ok(Query(q)) => Ok(q),
             Err(_) => {
                 let Query(q) = Query::<GeminiQueryAlt>::from_request_parts(parts, &()).await?;
-                // Prefer x-goog-api-key. If absent and this is gemini-cli route,
+                // Prefer x-goog-api-key. If absent and this is gemini CLI route,
                 // accept Authorization: Bearer as a flexible auth option.
                 // x-goog-api-key first
                 let key = parts
@@ -40,8 +40,8 @@ where
                     .map(|s| s.to_string());
                 let key = if let Some(k) = key {
                     k
-                } else if parts.uri.path().contains("/gemini-cli/") {
-                    // Fallback to Authorization: Bearer for gemini-cli routes
+                } else if parts.uri.path().contains("/gemini/cli/") {
+                    // Fallback to Authorization: Bearer for gemini CLI routes
                     match AuthBearer::from_request_parts(parts, &()).await {
                         Ok(AuthBearer(token)) => token,
                         Err(_) => return Err(ClewdrError::InvalidAuth),
@@ -49,10 +49,7 @@ where
                 } else {
                     return Err(ClewdrError::InvalidAuth);
                 };
-                Ok(Self {
-                    key,
-                    alt: q.alt,
-                })
+                Ok(Self { key, alt: q.alt })
             }
         }
     }

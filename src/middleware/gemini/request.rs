@@ -34,7 +34,7 @@ where
         let Path(path) = req.extract_parts::<Path<String>>().await?;
         let uri = req.uri().to_string();
         let vertex = uri.contains("vertex");
-        let cli = uri.contains("/gemini-cli/");
+        let cli = uri.contains("/gemini/cli/");
         if vertex && !CLEWDR_CONFIG.load().vertex.validate() {
             return Err(ClewdrError::BadRequest {
                 msg: "Vertex is not configured",
@@ -76,7 +76,7 @@ where
     async fn from_request(req: Request, _: &S) -> Result<Self, Self::Rejection> {
         let uri = req.uri().to_string();
         let vertex = uri.contains("vertex");
-        let cli = uri.contains("/gemini-cli/");
+        let cli = uri.contains("/gemini/cli/");
         if vertex && !CLEWDR_CONFIG.load().vertex.validate() {
             return Err(ClewdrError::BadRequest {
                 msg: "Vertex is not configured",

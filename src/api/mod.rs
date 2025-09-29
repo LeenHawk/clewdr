@@ -8,6 +8,7 @@ mod claude_web;
 mod config;
 mod error;
 mod gemini;
+mod gemini_cli;
 mod misc;
 mod storage;
 pub use claude_code::{api_claude_code, api_claude_code_count_tokens};
@@ -17,6 +18,7 @@ pub use claude_web::api_claude_web;
 pub use config::{api_get_config, api_post_config};
 pub use error::ApiError;
 pub use gemini::{api_post_gemini, api_post_gemini_oai};
+pub use gemini_cli::{api_gemini_cli_model_info, api_gemini_cli_models};
 /// Miscellaneous endpoints for authentication, cookies, and version information
 pub use misc::{
     api_auth, api_delete_cookie, api_delete_gemini_cli_credential, api_delete_key,

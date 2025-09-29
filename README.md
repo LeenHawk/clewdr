@@ -198,7 +198,7 @@ Claude Code:   http://127.0.0.1:8484/code/v1/messages     # Claude Code
 
 # Gemini Endpoints  
 Gemini Native: http://127.0.0.1:8484/v1/v1beta/generateContent    # Native format
-Gemini CLI:    http://127.0.0.1:8484/gemini-cli/v1/v1beta/generateContent # Gemini CLI (native)
+Gemini CLI:    http://127.0.0.1:8484/gemini/cli/v1/v1beta/generateContent # Gemini CLI (native)
 Gemini OpenAI: http://127.0.0.1:8484/gemini/chat/completions      # OpenAI compatible
 Vertex AI:     http://127.0.0.1:8484/v1/vertex/v1beta/            # Vertex AI
 ```
