@@ -14,6 +14,8 @@ use crate::{
 const CLAUDE_BETA_BASE: &str = "oauth-2025-04-20";
 const CLAUDE_BETA_CONTEXT_1M: &str = "oauth-2025-04-20,context-1m-2025-08-07";
 const CLAUDE_SONNET_4_PREFIX: &str = "claude-sonnet-4-20250514";
+const CLAUDE_SONNET_4_5_PREFIX: &str = "claude-sonnet-4-5-20250929";
+const CLAUDE_SONNET_4_PREFIXES: &[&str] = &[CLAUDE_SONNET_4_PREFIX, CLAUDE_SONNET_4_5_PREFIX];
 
 impl ClaudeCodeState {
     /// Attempts to send a chat message to Claude API with retry mechanism
@@ -464,7 +466,9 @@ impl ClaudeCodeState {
     }
 
     fn is_sonnet4_model(model: &str) -> bool {
-        model.starts_with(CLAUDE_SONNET_4_PREFIX)
+        CLAUDE_SONNET_4_PREFIXES
+            .iter()
+            .any(|prefix| model.starts_with(prefix))
     }
 
     fn local_count_tokens_response(body: &CreateMessageParams) -> axum::response::Response {

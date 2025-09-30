@@ -159,7 +159,7 @@ where
     async fn from_request(req: Request, _: &S) -> Result<Self, Self::Rejection> {
         let NormalizeRequest(mut body, format) = NormalizeRequest::from_request(req, &()).await?;
         // Handle thinking mode by modifying the model name
-        if body.model.contains("opus-4-1") && body.temperature.is_some() {
+        if (body.model.contains("opus-4-1") || body.model.contains("sonnet-4-5")) && body.temperature.is_some() {
             body.top_p = None; // temperature and top_p cannot be used together in Opus-4-1
         }
 
