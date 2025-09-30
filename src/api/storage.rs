@@ -44,22 +44,15 @@ pub async fn api_storage_export(
 
 /// DB status: enabled/mode/healthy/details/metrics
 pub async fn api_storage_status() -> Json<serde_json::Value> {
-    if persistence::storage().is_enabled()
-        && let Ok(s) = persistence::storage().status().await
-    {
+    // Always ask the storage layer for its status. File mode returns a minimal shape.
+    if let Ok(s) = persistence::storage().status().await {
         return Json(s);
     }
+    // Fallback: minimal file-mode shape (no metrics), to keep frontend simple
     Json(json!({
         "enabled": false,
         "mode": "file",
         "healthy": true,
-        "details": {
-            "driver": "file"
-        },
-        "write_error_count": 0,
-        "total_writes": 0,
-        "avg_write_ms": 0.0,
-        "failure_ratio": 0.0,
-        "last_write_ts": 0,
+        "details": { "driver": "file" }
     }))
 }

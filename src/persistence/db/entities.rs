@@ -61,6 +61,21 @@ pub mod entity_cookie {
         pub weekly_opus_usage: Option<String>,
         #[sea_orm(nullable)]
         pub lifetime_usage: Option<String>,
+        // New persisted reset boundaries and flags
+        #[sea_orm(column_type = "BigInteger", nullable)]
+        pub session_resets_at: Option<i64>,
+        #[sea_orm(column_type = "BigInteger", nullable)]
+        pub weekly_resets_at: Option<i64>,
+        #[sea_orm(column_type = "BigInteger", nullable)]
+        pub weekly_opus_resets_at: Option<i64>,
+        #[sea_orm(column_type = "BigInteger", nullable)]
+        pub resets_last_checked_at: Option<i64>,
+        #[sea_orm(nullable)]
+        pub session_has_reset: Option<bool>,
+        #[sea_orm(nullable)]
+        pub weekly_has_reset: Option<bool>,
+        #[sea_orm(nullable)]
+        pub weekly_opus_has_reset: Option<bool>,
     }
     #[derive(Copy, Clone, Debug, EnumIter)]
     pub enum Relation {}
@@ -94,7 +109,7 @@ pub mod entity_wasted {
 pub mod entity_key {
     use super::*;
     #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-    #[sea_orm(table_name = "keys")]
+    #[sea_orm(table_name = "api_keys")]
     pub struct Model {
         #[sea_orm(primary_key, auto_increment = false)]
         pub key: String,

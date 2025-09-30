@@ -1,4 +1,5 @@
-use sea_orm::{ConnectionTrait, Database, DatabaseConnection, Schema};
+use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, Schema, Statement};
+use std::time::Duration;
 use tokio::sync::OnceCell;
 
 use crate::error::ClewdrError;
@@ -28,12 +29,39 @@ pub async fn ensure_conn() -> Result<DatabaseConnection, ClewdrError> {
             {
                 let _ = std::fs::create_dir_all(parent);
             }
-            let db = Database::connect(&url)
+            // configure connection pool and timeouts for stability
+            let mut opt = ConnectOptions::new(url);
+            let max_connections = 10u32;
+            let min_connections = 1u32;
+            let connect_timeout = Duration::from_secs(8);
+            let acquire_timeout = Duration::from_secs(8);
+            let idle_timeout = Duration::from_secs(300);
+            opt.max_connections(max_connections)
+                .min_connections(min_connections)
+                .connect_timeout(connect_timeout)
+                .acquire_timeout(acquire_timeout)
+                .idle_timeout(idle_timeout)
+                .sqlx_logging(false);
+
+            // expose configured pool to metrics
+            super::metrics::set_conn_config(super::metrics::ConnConfigMetrics {
+                max_connections,
+                min_connections,
+                connect_timeout_ms: connect_timeout.as_millis() as u64,
+                acquire_timeout_ms: acquire_timeout.as_millis() as u64,
+                idle_timeout_ms: idle_timeout.as_millis() as u64,
+            });
+
+            let db = Database::connect(opt)
                 .await
-                .map_err(|e| ClewdrError::Whatever {
-                    message: "db_connect".into(),
-                    source: Some(Box::new(e)),
+                .map_err(|e| {
+                    super::metrics::mark_connect_err();
+                    ClewdrError::Whatever {
+                        message: "db_connect".into(),
+                        source: Some(Box::new(e)),
+                    }
                 })?;
+            super::metrics::mark_connect_ok();
             migrate(&db).await?;
             Ok::<_, ClewdrError>(db)
         })
@@ -51,8 +79,21 @@ async fn migrate(db: &DatabaseConnection) -> Result<(), ClewdrError> {
     db.execute(backend.build(&stmt)).await.ok();
     let stmt = schema.create_table_from_entity(EntityWasted);
     db.execute(backend.build(&stmt)).await.ok();
+    // attempt to rename legacy table names to new ones (best effort; ignore errors)
+    use sea_orm::DatabaseBackend;
+    let rename_stmt = match db.get_database_backend() {
+        DatabaseBackend::Postgres => Some("ALTER TABLE IF EXISTS \"keys\" RENAME TO \"api_keys\"".to_string()),
+        DatabaseBackend::MySql => Some("RENAME TABLE `keys` TO `api_keys`".to_string()),
+        DatabaseBackend::Sqlite => Some("ALTER TABLE IF EXISTS 'keys' RENAME TO 'api_keys'".to_string()),
+    };
+    if let Some(sql) = rename_stmt {
+        let backend = db.get_database_backend();
+        let _ = db.execute(Statement::from_string(backend, sql)).await;
+    }
+    // ensure new table exists (idempotent create)
     let stmt = schema.create_table_from_entity(EntityKeyRow);
     db.execute(backend.build(&stmt)).await.ok();
+
     // indexes
     use sea_orm::sea_query::{ColumnDef, Index, TableAlterStatement};
     // cookies(token_org_uuid)
@@ -77,7 +118,7 @@ async fn migrate(db: &DatabaseConnection) -> Result<(), ClewdrError> {
         .to_owned();
     db.execute(backend.build(&idx)).await.ok();
 
-    // Ensure supports_claude_1m column exists on cookies table
+    // Ensure supports_claude_1m and usage/period boundary columns exist on cookies table
     let alter = TableAlterStatement::new()
         .table(EntityCookie)
         .add_column(
@@ -128,6 +169,41 @@ async fn migrate(db: &DatabaseConnection) -> Result<(), ClewdrError> {
         .add_column(
             ColumnDef::new(ColumnCookie::WeeklyOpusUsage)
                 .string()
+                .null(),
+        )
+        .add_column(
+            ColumnDef::new(ColumnCookie::SessionResetsAt)
+                .big_integer()
+                .null(),
+        )
+        .add_column(
+            ColumnDef::new(ColumnCookie::WeeklyResetsAt)
+                .big_integer()
+                .null(),
+        )
+        .add_column(
+            ColumnDef::new(ColumnCookie::WeeklyOpusResetsAt)
+                .big_integer()
+                .null(),
+        )
+        .add_column(
+            ColumnDef::new(ColumnCookie::ResetsLastCheckedAt)
+                .big_integer()
+                .null(),
+        )
+        .add_column(
+            ColumnDef::new(ColumnCookie::SessionHasReset)
+                .boolean()
+                .null(),
+        )
+        .add_column(
+            ColumnDef::new(ColumnCookie::WeeklyHasReset)
+                .boolean()
+                .null(),
+        )
+        .add_column(
+            ColumnDef::new(ColumnCookie::WeeklyOpusHasReset)
+                .boolean()
                 .null(),
         )
         .to_owned();

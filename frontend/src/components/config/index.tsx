@@ -206,6 +206,20 @@ const ConfigTab: React.FC = () => {
             <Button
               onClick={async () => {
                 try {
+                  const s = await storageStatus();
+                  setStatus(s);
+                } catch (e) {
+                  toast.error((e as Error).message);
+                }
+              }}
+              variant="secondary"
+              className="py-1 px-3"
+            >
+              {t("config.storage.refresh", { defaultValue: "Refresh" })}
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
                   await storageImport();
                   toast.success(t("config.storage.importSuccess"));
                 } catch (e) {

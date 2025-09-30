@@ -42,7 +42,6 @@ export interface ConfigData {
 
 export interface StorageStatusDetails {
   driver?: string;
-  latency_ms?: number;
   sqlite_path?: string;
   database_url?: string;
 }
@@ -52,6 +51,8 @@ export interface StorageStatus {
   mode?: PersistenceMode;
   healthy?: boolean;
   details?: StorageStatusDetails;
+  // top-level latency in DB mode
+  latency_ms?: number;
   last_write_ts?: number;
   total_writes?: number;
   avg_write_ms?: number;
@@ -60,6 +61,25 @@ export interface StorageStatus {
   write_error_count?: number;
   error?: string;
   last_error?: string;
+  tx?: {
+    begin?: number;
+    commit?: number;
+    rollback?: number;
+    open?: number;
+    last_tx_ts?: number;
+  };
+  conn?: {
+    last_conn_ts?: number;
+    success?: number;
+    error?: number;
+    pool_config?: {
+      max_connections?: number;
+      min_connections?: number;
+      connect_timeout_ms?: number;
+      acquire_timeout_ms?: number;
+      idle_timeout_ms?: number;
+    } | null;
+  };
 }
 
 interface VertexConfig {
@@ -68,7 +88,7 @@ interface VertexConfig {
   [key: string]: unknown;
 }
 
-export type PersistenceMode = "file" | "sqlite" | "postgres";
+export type PersistenceMode = "file" | "sqlite" | "postgres" | "mysql";
 
 export interface PersistenceConfig {
   mode: PersistenceMode;
