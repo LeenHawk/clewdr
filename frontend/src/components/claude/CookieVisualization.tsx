@@ -102,44 +102,42 @@ const CookieVisualization: React.FC = () => {
     if (!hasAny) return null;
     return (
       <div className="grid gap-1 text-xs text-gray-400">
-        <div className="flex gap-3 flex-wrap">
-          {typeof sess === "number" && (
-            <span>
-              {t("cookieStatus.quota.session")}: {sess}%
-              {status.session_resets_at && (
-                <span className="ml-1 text-gray-500">
-                  {t("cookieStatus.quota.resetsAt", {
-                    time: formatIsoTimestamp(status.session_resets_at),
-                  })}
-                </span>
-              )}
-            </span>
-          )}
-          {typeof seven === "number" && (
-            <span>
-              {t("cookieStatus.quota.sevenDay")}: {seven}%
-              {status.seven_day_resets_at && (
-                <span className="ml-1 text-gray-500">
-                  {t("cookieStatus.quota.resetsAt", {
-                    time: formatIsoTimestamp(status.seven_day_resets_at),
-                  })}
-                </span>
-              )}
-            </span>
-          )}
-          {typeof opus === "number" && (
-            <span>
-              {t("cookieStatus.quota.sevenDayOpus")}: {opus}%
-              {status.seven_day_opus_resets_at && (
-                <span className="ml-1 text-gray-500">
-                  {t("cookieStatus.quota.resetsAt", {
-                    time: formatIsoTimestamp(status.seven_day_opus_resets_at),
-                  })}
-                </span>
-              )}
-            </span>
-          )}
-        </div>
+        {typeof sess === "number" && (
+          <div>
+            {t("cookieStatus.quota.session")}: {sess}%
+            {status.session_resets_at && (
+              <span className="ml-1 text-gray-500">
+                {t("cookieStatus.quota.resetsAt", {
+                  time: formatIsoTimestamp(status.session_resets_at),
+                })}
+              </span>
+            )}
+          </div>
+        )}
+        {typeof seven === "number" && (
+          <div>
+            {t("cookieStatus.quota.sevenDay")}: {seven}%
+            {status.seven_day_resets_at && (
+              <span className="ml-1 text-gray-500">
+                {t("cookieStatus.quota.resetsAt", {
+                  time: formatIsoTimestamp(status.seven_day_resets_at),
+                })}
+              </span>
+            )}
+          </div>
+        )}
+        {typeof opus === "number" && (
+          <div>
+            {t("cookieStatus.quota.sevenDayOpus")}: {opus}%
+            {status.seven_day_opus_resets_at && (
+              <span className="ml-1 text-gray-500">
+                {t("cookieStatus.quota.resetsAt", {
+                  time: formatIsoTimestamp(status.seven_day_opus_resets_at),
+                })}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     );
   };

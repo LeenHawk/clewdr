@@ -136,7 +136,7 @@
     "quota": {
       "session": "会话配额使用",
       "sevenDay": "7日配额使用",
-      "sevenDayOpus": "7日 Opus 配额使用",
+      "sevenDayOpus": "7日Opus配额使用",
       "resetsAt": "重置于 {{time}}"
     },
     "meta": {
