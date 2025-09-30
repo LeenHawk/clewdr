@@ -1,9 +1,8 @@
 use oauth2::PkceCodeVerifier;
-use snafu::ResultExt;
 
 use crate::{
     claude_code_state::ClaudeCodeState,
-    config::{CLEWDR_CONFIG, CookieStatus, TokenInfo},
+    config::{CLEWDR_CONFIG, CookieStatus},
     error::ClewdrError,
 };
 
@@ -55,7 +54,4 @@ impl ClaudeCodeState {
         Ok(())
     }
 
-    fn get_wreq_client(&self) -> wreq::Client {
-        self.client.clone()
-    }
 }

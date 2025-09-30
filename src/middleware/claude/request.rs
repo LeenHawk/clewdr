@@ -72,7 +72,7 @@ static TEST_MESSAGE_OAI: LazyLock<Message> = LazyLock::new(|| Message::new_text(
 
 struct NormalizeRequest(CreateMessageParams, ClaudeApiFormat);
 
-fn sanitize_messages(mut msgs: Vec<Message>) -> Vec<Message> {
+fn sanitize_messages(msgs: Vec<Message>) -> Vec<Message> {
     msgs
         .into_iter()
         .filter_map(|m| {
@@ -86,7 +86,7 @@ fn sanitize_messages(mut msgs: Vec<Message>) -> Vec<Message> {
                     MessageContent::Text { content: trimmed }
                 }
                 MessageContent::Blocks { content } => {
-                    let mut new_blocks: Vec<ContentBlock> = content
+                    let new_blocks: Vec<ContentBlock> = content
                         .into_iter()
                         .filter_map(|b| match b {
                             ContentBlock::Text { text } => {
@@ -103,7 +103,7 @@ fn sanitize_messages(mut msgs: Vec<Message>) -> Vec<Message> {
                     if role == Role::Assistant && new_blocks.is_empty() {
                         return None;
                     }
-                    MessageContent::Blocks { content: new_blocks.drain(..).collect() }
+                    MessageContent::Blocks { content: new_blocks }
                 }
             };
             Some(Message { role, content })
