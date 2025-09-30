@@ -93,24 +93,8 @@ impl LLMProvider for GeminiAiStudioProvider {
                 msg: "Vertex request routed to AI Studio provider",
             });
         }
-        log_request(&request.context);
-        let mut state = self.build_state(&request.context);
-        match request.payload {
-            GeminiPayload::Native(body) => {
-                if !request.context.stream {
-                    let stream = keep_alive_stream(state, body);
-                    return Response::builder()
-                        .header("Content-Type", "application/json")
-                        .body(Body::from_stream(stream))
-                        .map_err(|e| ClewdrError::HttpError {
-                            loc: Location::generate(),
-                            source: e,
-                        });
-                }
-                state.try_chat(body).await
-            }
-            GeminiPayload::OpenAI(body) => state.try_chat(body).await,
-        }
+        let state = self.build_state(&request.context);
+        handle_invoke_common(state, &request.context, request.payload).await
     }
 }
 
@@ -151,24 +135,8 @@ impl LLMProvider for GeminiVertexProvider {
                 msg: "AI Studio request routed to Vertex provider",
             });
         }
-        log_request(&request.context);
-        let mut state = self.build_state(&request.context)?;
-        match request.payload {
-            GeminiPayload::Native(body) => {
-                if !request.context.stream {
-                    let stream = keep_alive_stream(state, body);
-                    return Response::builder()
-                        .header("Content-Type", "application/json")
-                        .body(Body::from_stream(stream))
-                        .map_err(|e| ClewdrError::HttpError {
-                            loc: Location::generate(),
-                            source: e,
-                        });
-                }
-                state.try_chat(body).await
-            }
-            GeminiPayload::OpenAI(body) => state.try_chat(body).await,
-        }
+        let state = self.build_state(&request.context)?;
+        handle_invoke_common(state, &request.context, request.payload).await
     }
 }
 
@@ -246,5 +214,29 @@ where
                 else => break,
             }
         }
+    }
+}
+
+async fn handle_invoke_common(
+    mut state: GeminiState,
+    ctx: &GeminiContext,
+    payload: GeminiPayload,
+) -> Result<Response, ClewdrError> {
+    log_request(ctx);
+    match payload {
+        GeminiPayload::Native(body) => {
+            if !ctx.stream {
+                let stream = keep_alive_stream(state, body);
+                return Response::builder()
+                    .header("Content-Type", "application/json")
+                    .body(Body::from_stream(stream))
+                    .map_err(|e| ClewdrError::HttpError {
+                        loc: Location::generate(),
+                        source: e,
+                    });
+            }
+            state.try_chat(body).await
+        }
+        GeminiPayload::OpenAI(body) => state.try_chat(body).await,
     }
 }
