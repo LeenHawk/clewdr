@@ -136,7 +136,8 @@
     "quota": {
       "session": "Session utilization",
       "sevenDay": "7-day utilization",
-      "sevenDayOpus": "7-day Opus utilization"
+      "sevenDayOpus": "7-day Opus utilization",
+      "resetsAt": "Resets at {{time}}"
     },
     "meta": {
       "summary": "Details"

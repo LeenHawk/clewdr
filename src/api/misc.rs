@@ -432,13 +432,14 @@ async fn augment_utilization(cookies: Vec<CookieStatus>) -> Vec<Value> {
     stream::iter(cookies.into_iter().map(|c| async move {
         let base = serde_json::to_value(&c).unwrap_or(json!({}));
         match fetch_usage_percent(&c.cookie).await {
-            Some((five_hour, seven_day, seven_day_opus)) => {
+            Some((five_hour, five_reset, seven_day, seven_reset, seven_day_opus, opus_reset)) => {
                 let mut obj = base;
                 obj["session_utilization"] = json!(five_hour);
+                obj["session_resets_at"] = json!(five_reset);
                 obj["seven_day_utilization"] = json!(seven_day);
-                if let Some(opus) = seven_day_opus {
-                    obj["seven_day_opus_utilization"] = json!(opus);
-                }
+                obj["seven_day_resets_at"] = json!(seven_reset);
+                obj["seven_day_opus_utilization"] = json!(seven_day_opus);
+                obj["seven_day_opus_resets_at"] = json!(opus_reset);
                 obj
             }
             None => base,
@@ -449,7 +450,9 @@ async fn augment_utilization(cookies: Vec<CookieStatus>) -> Vec<Value> {
     .await
 }
 
-async fn fetch_usage_percent(cookie: &crate::config::ClewdrCookie) -> Option<(u32, u32, Option<u32>)> {
+async fn fetch_usage_percent(
+    cookie: &crate::config::ClewdrCookie,
+) -> Option<(u32, Option<String>, u32, Option<String>, u32, Option<String>)> {
     let mut builder = ClientBuilder::new().cookie_store(true).emulation(Emulation::Chrome136);
     if let Some(proxy) = CLEWDR_CONFIG.load().wreq_proxy.clone() {
         builder = builder.proxy(proxy);
@@ -509,15 +512,31 @@ async fn fetch_usage_percent(cookie: &crate::config::ClewdrCookie) -> Option<(u3
         .and_then(|o| o.get("utilization"))
         .and_then(|v| v.as_u64())
         .unwrap_or(0) as u32;
+    let five_reset = usage
+        .get("five_hour")
+        .and_then(|o| o.get("resets_at"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
     let seven = usage
         .get("seven_day")
         .and_then(|o| o.get("utilization"))
         .and_then(|v| v.as_u64())
         .unwrap_or(0) as u32;
+    let seven_reset = usage
+        .get("seven_day")
+        .and_then(|o| o.get("resets_at"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
     let seven_opus = usage
         .get("seven_day_opus")
         .and_then(|o| o.get("utilization"))
         .and_then(|v| v.as_u64())
-        .map(|v| v as u32);
-    Some((five, seven, seven_opus))
+        .map(|v| v as u32)
+        .unwrap_or(0);
+    let opus_reset = usage
+        .get("seven_day_opus")
+        .and_then(|o| o.get("resets_at"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    Some((five, five_reset, seven, seven_reset, seven_opus, opus_reset))
 }

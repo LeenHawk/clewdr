@@ -11,6 +11,18 @@ export const formatTimestamp = (timestamp: number): string => {
 };
 
 /**
+ * Formats an ISO8601 timestamp to a localized date and time string
+ */
+export const formatIsoTimestamp = (iso?: string | null): string => {
+  if (!iso) return "N/A";
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return "Invalid date";
+  }
+};
+
+/**
  * Formats seconds into a human-readable time elapsed string
  */
 export const formatTimeElapsed = (seconds: number): string => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { getCookieStatus, deleteCookie } from "../../api";
-import { formatTimestamp } from "../../utils/formatters";
+import { formatTimestamp, formatIsoTimestamp } from "../../utils/formatters";
 import { CookieStatusInfo } from "../../types/cookie.types";
 import Button from "../common/Button";
 import LoadingSpinner from "../common/LoadingSpinner";
@@ -106,16 +106,37 @@ const CookieVisualization: React.FC = () => {
           {typeof sess === "number" && (
             <span>
               {t("cookieStatus.quota.session")}: {sess}%
+              {status.session_resets_at && (
+                <span className="ml-1 text-gray-500">
+                  {t("cookieStatus.quota.resetsAt", {
+                    time: formatIsoTimestamp(status.session_resets_at),
+                  })}
+                </span>
+              )}
             </span>
           )}
           {typeof seven === "number" && (
             <span>
               {t("cookieStatus.quota.sevenDay")}: {seven}%
+              {status.seven_day_resets_at && (
+                <span className="ml-1 text-gray-500">
+                  {t("cookieStatus.quota.resetsAt", {
+                    time: formatIsoTimestamp(status.seven_day_resets_at),
+                  })}
+                </span>
+              )}
             </span>
           )}
           {typeof opus === "number" && (
             <span>
               {t("cookieStatus.quota.sevenDayOpus")}: {opus}%
+              {status.seven_day_opus_resets_at && (
+                <span className="ml-1 text-gray-500">
+                  {t("cookieStatus.quota.resetsAt", {
+                    time: formatIsoTimestamp(status.seven_day_opus_resets_at),
+                  })}
+                </span>
+              )}
             </span>
           )}
         </div>

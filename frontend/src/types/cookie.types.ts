@@ -12,6 +12,10 @@ export interface CookieStatus {
   session_utilization?: number;
   seven_day_utilization?: number;
   seven_day_opus_utilization?: number;
+  // Resets at timestamps (ISO8601), attached by /api/cookies only
+  session_resets_at?: string | null;
+  seven_day_resets_at?: string | null;
+  seven_day_opus_resets_at?: string | null;
 }
 
 export interface UselessCookie {
