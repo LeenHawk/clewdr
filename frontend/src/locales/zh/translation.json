@@ -133,6 +133,11 @@
       "totalInput": "累计输入 Token",
       "totalOutput": "累计输出 Token"
     },
+    "quota": {
+      "session": "会话配额使用",
+      "sevenDay": "7日配额使用",
+      "sevenDayOpus": "7日 Opus 配额使用"
+    },
     "meta": {
       "summary": "查看详情"
     },

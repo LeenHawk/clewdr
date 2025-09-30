@@ -133,6 +133,11 @@
       "totalInput": "Total input tokens",
       "totalOutput": "Total output tokens"
     },
+    "quota": {
+      "session": "Session utilization",
+      "sevenDay": "7-day utilization",
+      "sevenDayOpus": "7-day Opus utilization"
+    },
     "meta": {
       "summary": "Details"
     },

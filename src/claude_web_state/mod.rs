@@ -15,7 +15,7 @@ use crate::{
     error::{ClewdrError, WreqSnafu},
     middleware::claude::ClaudeApiFormat,
     services::cookie_actor::CookieActorHandle,
-    types::claude::Usage,
+    types::claude::{CreateMessageParams, Usage},
 };
 
 pub mod bootstrap;
@@ -40,6 +40,8 @@ pub struct ClaudeWebState {
     pub client: Client,
     pub key: Option<(u64, usize)>,
     pub usage: Usage,
+    // keep the last request params for potential post-call token accounting
+    pub last_params: Option<CreateMessageParams>,
 }
 
 impl ClaudeWebState {
@@ -59,6 +61,7 @@ impl ClaudeWebState {
             client: SUPER_CLIENT.to_owned(),
             key: None,
             usage: Usage::default(),
+            last_params: None,
         }
     }
 

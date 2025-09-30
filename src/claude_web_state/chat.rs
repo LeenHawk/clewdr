@@ -125,6 +125,8 @@ impl ClaudeWebState {
         self.conv_uuid = Some(new_uuid.to_string());
         debug!("New conversation created: {}", new_uuid);
 
+        // preserve original params for possible post-call token accounting
+        self.last_params = Some(p.clone());
         let mut body = json!({});
         // enable thinking mode
         body["settings"]["paprika_mode"] = if p.thinking.is_some() && self.is_pro() {

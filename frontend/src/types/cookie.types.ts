@@ -8,6 +8,10 @@ export interface CookieStatus {
   total_output_tokens?: number;
   window_input_tokens?: number;
   window_output_tokens?: number;
+  // Ephemeral quota utilizations (percent), attached by /api/cookies only
+  session_utilization?: number;
+  seven_day_utilization?: number;
+  seven_day_opus_utilization?: number;
 }
 
 export interface UselessCookie {

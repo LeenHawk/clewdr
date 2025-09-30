@@ -93,6 +93,36 @@ const CookieVisualization: React.FC = () => {
     );
   };
 
+  const renderQuotaStats = (status: any) => {
+    const sess = status.session_utilization;
+    const seven = status.seven_day_utilization;
+    const opus = status.seven_day_opus_utilization;
+    const hasAny =
+      typeof sess === "number" || typeof seven === "number" || typeof opus === "number";
+    if (!hasAny) return null;
+    return (
+      <div className="grid gap-1 text-xs text-gray-400">
+        <div className="flex gap-3 flex-wrap">
+          {typeof sess === "number" && (
+            <span>
+              {t("cookieStatus.quota.session")}: {sess}%
+            </span>
+          )}
+          {typeof seven === "number" && (
+            <span>
+              {t("cookieStatus.quota.sevenDay")}: {seven}%
+            </span>
+          )}
+          {typeof opus === "number" && (
+            <span>
+              {t("cookieStatus.quota.sevenDayOpus")}: {opus}%
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const handleDeleteCookie = async (cookie: string) => {
     if (!window.confirm(t("cookieStatus.deleteConfirm"))) return;
 
@@ -277,7 +307,8 @@ const CookieVisualization: React.FC = () => {
           renderStatus={(status, index) => {
             const contextBadge = renderContextBadge(status.supports_claude_1m);
             const usageStats = renderUsageStats(status);
-            const hasMeta = contextBadge || usageStats;
+            const quotaStats = renderQuotaStats(status);
+            const hasMeta = contextBadge || usageStats || quotaStats;
             return (
               <div
                 key={index}
@@ -297,6 +328,7 @@ const CookieVisualization: React.FC = () => {
                           </div>
                         )}
                         {usageStats}
+                        {quotaStats}
                       </div>
                     </details>
                   )}
@@ -324,7 +356,8 @@ const CookieVisualization: React.FC = () => {
           renderStatus={(status, index) => {
             const contextBadge = renderContextBadge(status.supports_claude_1m);
             const usageStats = renderUsageStats(status);
-            const hasMeta = contextBadge || usageStats;
+            const quotaStats = renderQuotaStats(status);
+            const hasMeta = contextBadge || usageStats || quotaStats;
             return (
               <div
                 key={index}
@@ -344,6 +377,7 @@ const CookieVisualization: React.FC = () => {
                           </div>
                         )}
                         {usageStats}
+                        {quotaStats}
                       </div>
                     </details>
                   )}

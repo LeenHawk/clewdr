@@ -12,6 +12,8 @@ use crate::{Args, config::ClewdrConfig};
 
 pub const CONFIG_NAME: &str = "clewdr.toml";
 pub const CLAUDE_ENDPOINT: &str = "https://api.anthropic.com";
+/// Anthropic console base, used for org usage introspection
+pub const CLAUDE_CONSOLE_ENDPOINT: &str = "https://console.anthropic.com";
 pub const GEMINI_ENDPOINT: &str = "https://generativelanguage.googleapis.com";
 pub const CC_CLIENT_ID: &str = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 pub const CC_TOKEN_URL: &str = "https://console.anthropic.com/v1/oauth/token";
