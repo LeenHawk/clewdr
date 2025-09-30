@@ -98,36 +98,18 @@ impl ClaudeWebState {
             msg: "Failed to parse organizations response",
         })?;
         print_out_json(&ret_json, "org.json");
+        let uuid = crate::anthropic::org::select_chat_org_uuid_from_value(&ret_json)
+            .ok_or(ClewdrError::UnexpectedNone { msg: "Failed to find a valid organization in response" })?;
+
+        // locate the selected organization object to check flags
         let acc_info = ret_json
             .as_array()
-            .and_then(|a| {
-                a.iter()
-                    .filter(|v| {
-                        v.get("capabilities")
-                            .and_then(|c| c.as_array())
-                            .is_some_and(|c| c.iter().any(|c| c.as_str() == Some("chat")))
-                    })
-                    .max_by_key(|v| {
-                        v.get("capabilities")
-                            .and_then(|c| c.as_array())
-                            .map(|c| c.len())
-                            .unwrap_or_default()
-                    })
-            })
-            .ok_or(ClewdrError::UnexpectedNone {
-                msg: "Failed to find a valid organization in response",
-            })?;
+            .and_then(|a| a.iter().find(|v| v.get("uuid").and_then(|u| u.as_str()) == Some(uuid.as_str())))
+            .ok_or(ClewdrError::UnexpectedNone { msg: "Failed to locate selected organization" })?;
 
         self.check_flags(acc_info, w)?;
 
-        let u =
-            acc_info
-                .get("uuid")
-                .and_then(|u| u.as_str())
-                .ok_or(ClewdrError::UnexpectedNone {
-                    msg: "Failed to find UUID in organization response",
-                })?;
-        self.org_uuid = Some(u.to_string());
+        self.org_uuid = Some(uuid);
         Ok(())
     }
 

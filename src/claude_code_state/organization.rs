@@ -56,12 +56,12 @@ impl ClaudeCodeState {
         let email = bootstrap["account"]["email_address"]
             .as_str()
             .unwrap_or_default();
-        let uuid = boot_acc_info["uuid"]
-            .as_str()
+        // After account bootstrap/pro checks, select final org via unified helper
+        let uuid = crate::anthropic::org::select_chat_org_uuid(&self.client, &self.endpoint)
+            .await
             .ok_or(ClewdrError::UnexpectedNone {
-                msg: "Failed to get organization UUID",
-            })?
-            .to_string();
+                msg: "Failed to find a valid organization in response",
+            })?;
 
         println!(
             "[{}]\nemail: {}\ncapabilities: {}",

@@ -57,3 +57,15 @@ This document outlines the key areas for improving the architecture of the Clewd
   - [ ] Introduce a lightweight persistence layer for state currently managed by in-memory actors.
   - [ ] **Option A (Simple):** On startup, load state from a file (e.g., `state.json`). Use the actor model to manage it in memory for performance, but periodically flush changes back to the file.
   - [ ] **Option B (Robust):** Integrate a simple database like SQLite. Use `sqlx` for asynchronous, type-safe SQL queries. This would provide durable storage for keys, cookies, and user configurations.
+
+---
+
+## Phase 1 Refactor (Dedup + Helpers)
+
+- [x] Introduce `anthropic::org::select_chat_org_uuid` and reuse across modules
+- [x] Introduce `anthropic::usage::{fetch_console_usage, parse_usage_percents, parse_reset_timestamps}`
+- [x] Introduce `net::client::{chrome_client_with_proxy, attach_cookie_for_api_and_console}`
+- [x] Refactor `/api/cookies` enrichment to use new helpers (`src/api/misc.rs`)
+- [x] Refactor `ClaudeCodeState` usage reset probe to use new helpers (`src/claude_code_state/chat.rs`)
+- [ ] Extract Claude Code OAuth exchange/refresh into `anthropic::oauth` and reuse in web-side count_tokens
+- [ ] Unify remaining duplicate org discovery (bootstrap vs organizations) as appropriate

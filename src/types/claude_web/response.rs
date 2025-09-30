@@ -251,10 +251,28 @@ impl ClaudeWebState {
             code.client.set_cookie(&self.endpoint, &val);
         }
 
-        // OAuth exchange to get access token
+        // OAuth exchange to get access token (via shared anthropic::oauth)
         let org = code.get_organization().await.ok()?;
-        let exch = code.exchange_code(&org).await.ok()?;
-        code.exchange_token(exch).await.ok()?;
+        let cc_client_id = crate::config::CLEWDR_CONFIG.load().cc_client_id();
+        let exch = crate::anthropic::oauth::exchange_code(
+            &code.client,
+            &code.endpoint,
+            &org,
+            cc_client_id.clone(),
+        )
+        .await
+        .ok()?;
+        let token_info = crate::anthropic::oauth::exchange_token(
+            &code.client,
+            cc_client_id,
+            exch,
+            org.clone(),
+        )
+        .await
+        .ok()?;
+        if let Some(cookie) = code.cookie.as_mut() {
+            cookie.token = Some(token_info);
+        }
         let access = code.cookie.as_ref()?.token.as_ref()?.access_token.clone();
 
         // prepare body
@@ -286,8 +304,26 @@ async fn count_code_output_tokens_for_text(
         code.client.set_cookie(&code.endpoint, &val);
     }
     let org = code.get_organization().await.ok()?;
-    let exch = code.exchange_code(&org).await.ok()?;
-    code.exchange_token(exch).await.ok()?;
+    let cc_client_id = crate::config::CLEWDR_CONFIG.load().cc_client_id();
+    let exch = crate::anthropic::oauth::exchange_code(
+        &code.client,
+        &code.endpoint,
+        &org,
+        cc_client_id.clone(),
+    )
+    .await
+    .ok()?;
+    let token_info = crate::anthropic::oauth::exchange_token(
+        &code.client,
+        cc_client_id,
+        exch,
+        org.clone(),
+    )
+    .await
+    .ok()?;
+    if let Some(cookie) = code.cookie.as_mut() {
+        cookie.token = Some(token_info);
+    }
     let access = code.cookie.as_ref()?.token.as_ref()?.access_token.clone();
 
     let body = CreateMessageParams {

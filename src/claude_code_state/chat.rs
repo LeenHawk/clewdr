@@ -12,8 +12,7 @@ use crate::{
     error::{CheckClaudeErr, ClewdrError, WreqSnafu},
     types::claude::{CountMessageTokensResponse, CreateMessageParams},
 };
-use wreq::{ClientBuilder, Method, Url, header::{ORIGIN, REFERER}};
-use wreq_util::Emulation;
+use wreq::Url;
 
 const CLAUDE_BETA_BASE: &str = "oauth-2025-04-20";
 const CLAUDE_BETA_CONTEXT_1M: &str = "oauth-2025-04-20,context-1m-2025-08-07";
@@ -657,81 +656,28 @@ impl ClaudeCodeState {
     async fn fetch_usage_resets(
         cookie: &crate::config::ClewdrCookie,
     ) -> Option<(Option<i64>, Option<i64>, Option<i64>)> {
-        // Build a fresh client (mirrors misc.rs behavior)
-        let mut builder = ClientBuilder::new()
-            .cookie_store(true)
-            .emulation(Emulation::Chrome136);
-        if let Some(proxy) = CLEWDR_CONFIG.load().wreq_proxy.clone() {
-            builder = builder.proxy(proxy);
-        }
-        let client = builder.build().ok()?;
+        // Build client
+        let client = crate::net::client::chrome_client_with_proxy(
+            CLEWDR_CONFIG.load().wreq_proxy.clone(),
+        )
+        .ok()?;
 
         // Attach cookie for both api and console domains
         let endpoint: Url = CLEWDR_CONFIG.load().endpoint();
         let cookie_header = http::HeaderValue::from_str(&cookie.to_string()).ok()?;
-        client.set_cookie(&endpoint, &cookie_header);
         let console_url = Url::parse(CLAUDE_CONSOLE_ENDPOINT).ok()?;
-        client.set_cookie(&console_url, &cookie_header);
-
-        // Discover organization UUID (prefer chat-capable org)
-        let orgs_url = format!(
-            "{}/api/organizations",
-            endpoint.as_str().trim_end_matches('/')
+        crate::net::client::attach_cookie_for_api_and_console(
+            &client,
+            &endpoint,
+            &console_url,
+            &cookie_header,
         );
-        let orgs_res = client
-            .request(Method::GET, orgs_url)
-            .header(ORIGIN, crate::config::CLAUDE_ENDPOINT)
-            .header(REFERER, format!("{}/new", crate::config::CLAUDE_ENDPOINT))
-            .send()
-            .await
-            .ok()?;
-        let orgs_val: serde_json::Value = orgs_res.json().await.ok()?;
-        let org_uuid = orgs_val
-            .as_array()
-            .and_then(|a| {
-                a.iter()
-                    .filter(|v| {
-                        v.get("capabilities")
-                            .and_then(|c| c.as_array())
-                            .map(|c| c.iter().any(|x| x.as_str() == Some("chat")))
-                            .unwrap_or(false)
-                    })
-                    .max_by_key(|v| {
-                        v.get("capabilities")
-                            .and_then(|c| c.as_array())
-                            .map(|c| c.len())
-                            .unwrap_or_default()
-                    })
-                    .and_then(|v| v.get("uuid").and_then(|u| u.as_str()))
-            })
-            .or_else(|| {
-                orgs_val
-                    .get(0)
-                    .and_then(|v| v.get("uuid").and_then(|u| u.as_str()))
-            })?;
 
-        // Query usage from console API
-        let usage_url = format!(
-            "{}/api/organizations/{}/usage",
-            CLAUDE_CONSOLE_ENDPOINT, org_uuid
-        );
-        let usage_res = client.request(Method::GET, usage_url).send().await.ok()?;
-        let usage: serde_json::Value = usage_res.json().await.ok()?;
-
-        let parse_reset = |obj_key: &str| -> Option<i64> {
-            usage
-                .get(obj_key)
-                .and_then(|o| o.get("resets_at"))
-                .and_then(|v| v.as_str())
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-                .map(|dt| dt.timestamp())
-        };
-
-        Some((
-            parse_reset("five_hour"),
-            parse_reset("seven_day"),
-            parse_reset("seven_day_opus"),
-        ))
+        // Discover organization UUID
+        let org_uuid = crate::anthropic::org::select_chat_org_uuid(&client, &endpoint).await?;
+        // Fetch usage JSON and parse timestamps
+        let usage = crate::anthropic::usage::fetch_console_usage(&client, &org_uuid).await?;
+        Some(crate::anthropic::usage::parse_reset_timestamps(&usage))
     }
 
     fn local_count_tokens_response(body: &CreateMessageParams) -> axum::response::Response {

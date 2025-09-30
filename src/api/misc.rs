@@ -9,10 +9,7 @@ use yup_oauth2::ServiceAccountKey;
 
 use crate::{
     VERSION_INFO,
-    config::{
-        CLAUDE_CONSOLE_ENDPOINT, CLAUDE_ENDPOINT, CLEWDR_CONFIG, ClewdrConfig, CookieStatus,
-        KeyStatus,
-    },
+    config::{CLAUDE_CONSOLE_ENDPOINT, CLEWDR_CONFIG, ClewdrConfig, CookieStatus, KeyStatus},
     persistence,
     services::{
         cookie_actor::CookieActorHandle,
@@ -421,11 +418,7 @@ pub async fn api_get_models() -> Json<Value> {
 // ------------------------------
 use futures::{StreamExt, stream};
 use http::HeaderValue;
-use wreq::{
-    ClientBuilder, Method, Url,
-    header::{ORIGIN, REFERER},
-};
-use wreq_util::Emulation;
+use wreq::Url;
 
 async fn augment_utilization(cookies: Vec<CookieStatus>) -> Vec<Value> {
     let concurrency = 5usize;
@@ -460,95 +453,28 @@ async fn fetch_usage_percent(
     u32,
     Option<String>,
 )> {
-    let mut builder = ClientBuilder::new()
-        .cookie_store(true)
-        .emulation(Emulation::Chrome136);
-    if let Some(proxy) = CLEWDR_CONFIG.load().wreq_proxy.clone() {
-        builder = builder.proxy(proxy);
-    }
-    let client = builder.build().ok()?;
+    // Build client
+    let client = crate::net::client::chrome_client_with_proxy(
+        CLEWDR_CONFIG.load().wreq_proxy.clone(),
+    )
+    .ok()?;
 
     // Attach cookie for both api and console domains
     let endpoint: Url = CLEWDR_CONFIG.load().endpoint();
     let cookie_header = HeaderValue::from_str(&cookie.to_string()).ok()?;
-    client.set_cookie(&endpoint, &cookie_header);
     let console_url = Url::parse(CLAUDE_CONSOLE_ENDPOINT).ok()?;
-    client.set_cookie(&console_url, &cookie_header);
-
-    // Discover organization UUID (prefer chat-capable org)
-    let orgs_url = format!(
-        "{}/api/organizations",
-        endpoint.as_str().trim_end_matches('/')
+    crate::net::client::attach_cookie_for_api_and_console(
+        &client,
+        &endpoint,
+        &console_url,
+        &cookie_header,
     );
-    let orgs_res = client
-        .request(Method::GET, orgs_url)
-        .header(ORIGIN, CLAUDE_ENDPOINT)
-        .header(REFERER, format!("{}/new", CLAUDE_ENDPOINT))
-        .send()
-        .await
-        .ok()?;
-    let orgs_val: Value = orgs_res.json().await.ok()?;
-    let org_uuid = orgs_val
-        .as_array()
-        .and_then(|a| {
-            a.iter()
-                .filter(|v| {
-                    v.get("capabilities")
-                        .and_then(|c| c.as_array())
-                        .map(|c| c.iter().any(|x| x.as_str() == Some("chat")))
-                        .unwrap_or(false)
-                })
-                .max_by_key(|v| {
-                    v.get("capabilities")
-                        .and_then(|c| c.as_array())
-                        .map(|c| c.len())
-                        .unwrap_or_default()
-                })
-                .and_then(|v| v.get("uuid").and_then(|u| u.as_str()))
-        })
-        .or_else(|| {
-            orgs_val
-                .get(0)
-                .and_then(|v| v.get("uuid").and_then(|u| u.as_str()))
-        })?;
 
-    // Query usage from console API
-    let usage_url = format!(
-        "{}/api/organizations/{}/usage",
-        CLAUDE_CONSOLE_ENDPOINT, org_uuid
-    );
-    let usage_res = client.request(Method::GET, usage_url).send().await.ok()?;
-    let usage: Value = usage_res.json().await.ok()?;
-    let five = usage
-        .get("five_hour")
-        .and_then(|o| o.get("utilization"))
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0) as u32;
-    let five_reset = usage
-        .get("five_hour")
-        .and_then(|o| o.get("resets_at"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-    let seven = usage
-        .get("seven_day")
-        .and_then(|o| o.get("utilization"))
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0) as u32;
-    let seven_reset = usage
-        .get("seven_day")
-        .and_then(|o| o.get("resets_at"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-    let seven_opus = usage
-        .get("seven_day_opus")
-        .and_then(|o| o.get("utilization"))
-        .and_then(|v| v.as_u64())
-        .map(|v| v as u32)
-        .unwrap_or(0);
-    let opus_reset = usage
-        .get("seven_day_opus")
-        .and_then(|o| o.get("resets_at"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    // Discover org
+    let org_uuid = crate::anthropic::org::select_chat_org_uuid(&client, &endpoint).await?;
+    // Fetch usage JSON
+    let usage = crate::anthropic::usage::fetch_console_usage(&client, &org_uuid).await?;
+    let (five, five_reset, seven, seven_reset, seven_opus, opus_reset) =
+        crate::anthropic::usage::parse_usage_percents(&usage);
     Some((five, five_reset, seven, seven_reset, seven_opus, opus_reset))
 }
