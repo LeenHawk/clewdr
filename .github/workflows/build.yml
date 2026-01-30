@@ -59,7 +59,7 @@ jobs:
     needs: build-frontend
     strategy:
       matrix:
-        os: [linux, musllinux, android, windows, macos]
+        os: [linux, android, windows, macos]
         target_arch: [x86_64, aarch64]
         include:
           # rust target vendor + system + environment

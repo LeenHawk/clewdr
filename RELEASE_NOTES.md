@@ -1,4 +1,5 @@
 # Release Notes
 
-- Fix toolcall param bug
-- Expand Claude message schema support (tool_choice strings, content block variants, image sources, stop reasons)
+- remove santizer
+- remove musllinux temporalily to be built
+- update to adapt cookie like sk-ant-sidxx-
